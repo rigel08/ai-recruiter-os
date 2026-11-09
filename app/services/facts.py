@@ -144,7 +144,8 @@ _SOMEONE_ELSE = re.compile(r"\b(?:company|firm|organi[sz]ation|client|vendor|pro
 _AT_AN_EMPLOYER = re.compile(r"\s+at\s+[A-Z]")
 
 
-def _years(whole: str, months: str | None) -> tuple[float, str] | None:
+def _years(whole: str, months: str | None) -> tuple[float, str, str | None] | None:
+    note = None
     if months is not None:
         value = float(whole.split(".")[0]) + int(months) / 12
         shown = f"{whole.split('.')[0]} years {int(months)} months"
@@ -153,12 +154,13 @@ def _years(whole: str, months: str | None) -> tuple[float, str] | None:
         years, extra = whole.split(".")
         value = int(years) + int(extra) / 12
         shown = f"{years} years {extra} months"
+        note = f'Read "{whole} years" as {years} years {extra} months.'
     else:
         value = float(whole)
         shown = f"{_number(value)} years"
     if not 0 < value <= MAX_YEARS:
         return None
-    return round(value, 2), shown
+    return round(value, 2), shown, note
 
 
 def _experience(lines: list[str]) -> Found | None:
@@ -169,7 +171,7 @@ def _experience(lines: list[str]) -> Found | None:
         if match:
             parsed = _years(match.group(1), match.group(2))
             if parsed:
-                labelled.append(Found(parsed[0], parsed[1], _clip(unit, match.start(), match.end())))
+                labelled.append(Found(parsed[0], parsed[1], _clip(unit, match.start(), match.end()), parsed[2]))
             continue
         fresher = _EXPERIENCE_FRESHER.search(unit)
         if fresher:
@@ -188,8 +190,9 @@ def _experience(lines: list[str]) -> Found | None:
                 continue
             parsed = _years(match.group(1), match.group(2))
             if parsed:
+                note = "Stated by the candidate, not worked out from job dates."
                 stated.append((index, Found(parsed[0], parsed[1], _clip(line, match.start(), match.end()),
-                                            "Stated by the candidate, not worked out from job dates.")))
+                                            f"{parsed[2]} {note}" if parsed[2] else note)))
     if not stated:
         return None
     # The summary at the top states the total; figures further down are usually per skill.
@@ -201,7 +204,7 @@ def _experience(lines: list[str]) -> Found | None:
     if others:
         # "4 years of experience in Node.js, 2 years in Java": these may be per skill, not a total.
         note = f"The resume also mentions {', '.join(others)}, so this may not be the total. Confirm on the call."
-        return Found(best.value, best.display, best.quote, note, True)
+        return Found(best.value, best.display, best.quote, f"{best.note} {note}" if best.note else note, True)
     return best
 
 

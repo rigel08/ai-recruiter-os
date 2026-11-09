@@ -118,6 +118,9 @@ def test_per_skill_figures_are_flagged_as_possibly_not_the_total():
 def test_five_point_ten_years_means_five_years_ten_months():
     fact = extract_facts("Total experience: 5.10 years")["total_experience"]
     assert (fact.value, fact.display) == (5.83, "5 years 10 months")
+    # The value isn't literally on the resume, so the reading is spelled out.
+    assert fact.note == 'Read "5.10 years" as 5 years 10 months.'
+    assert extract_facts("Total experience: 5.5 years")["total_experience"].note is None
 
 
 def test_bare_location_is_trusted_only_near_the_top():

@@ -159,7 +159,8 @@
   .facts .check { background: var(--warn-bg); color: var(--warn); border-radius: 4px; padding: 0 5px; font-size: 12px; font-style: normal; margin-left: 4px; }
   .ask { margin: 6px 0 0; padding: 4px 8px; border-radius: 6px; background: var(--neutral-bg); font-size: 13px; }
   .evidence { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
-  .evidence q { color: var(--muted); }
+  .evidence li { margin-bottom: 4px; overflow-wrap: anywhere; }
+  .evidence .note { display: block; color: var(--muted); }
   .coverage { margin: 0 0 12px; font-size: 14px; }
   [hidden] { display: none !important; }
 </style>
@@ -254,6 +255,7 @@
   const FACT_NAMES = { phone: "Phone", total_experience: "Total experience", notice_period: "Notice period",
     current_ctc: "Current CTC", expected_ctc: "Expected CTC", current_location: "Current location",
     preferred_location: "Preferred location" };
+  const FACT_UNITS = { total_experience: "years", notice_period: "days", current_ctc: "LPA", expected_ctc: "LPA" };
   const experienced = $("experienced");
   // Storage can be blocked (private windows), so the page must work without it.
   try { experienced.checked = localStorage.getItem("experienced") === "1"; } catch {}
@@ -489,15 +491,17 @@
     for (const key of Object.keys(FACT_NAMES)) {
       const fact = c.facts[key];
       if (fact) {
-        evidence.push(el("li", {}, el("strong", {}, FACT_NAMES[key] + ": "), el("q", {}, fact.quote),
-          fact.note ? " " + fact.note : null));
+        // The quote is the item's own text (not a child element), with real quotation marks, so it
+        // survives copying and is read out by screen readers. The tool's own remark is kept apart.
+        evidence.push(el("li", {}, el("strong", {}, FACT_NAMES[key] + ": "), `“${fact.quote}”`,
+          fact.note ? el("span", { class: "note" }, "Note: " + fact.note) : null));
       }
     }
     if (list.children.length) cell.append(list);
     else cell.append(el("span", { class: "hint" }, "Nothing stated on the resume."));
     if (c.to_ask.length) cell.append(el("p", { class: "ask" }, el("strong", {}, "Ask on the call: "), askText(c.to_ask)));
     if (evidence.length) {
-      cell.append(el("details", {}, el("summary", {}, "Where each value came from"), el("ul", { class: "evidence" }, ...evidence)));
+      cell.append(el("details", {}, el("summary", {}, "Where each value came from (exact resume text)"), el("ul", { class: "evidence" }, ...evidence)));
     }
     return cell;
   }
@@ -530,7 +534,7 @@
     const factKeys = Object.keys(FACT_NAMES);
     if (withFacts) {
       header.push("Phone", "Total experience (years)", "Notice period (days)", "Current CTC (LPA)",
-        "Expected CTC (LPA)", "Current location", "Preferred location", "Ask on the call", "Evidence");
+        "Expected CTC (LPA)", "Current location", "Preferred location", "Ask on the call", "Notes", "Evidence");
     }
     const lines = [header.map(csvCell).join(",")];
     for (const c of lastResult.candidates) {
@@ -541,12 +545,22 @@
       if (withFacts) {
         for (const key of factKeys) {
           const fact = c.facts[key];
-          // A number where the resume gives one; otherwise its words ("Negotiable"), or blank.
+          // A value only where the resume gives one. Words such as "Negotiable" stay out of the
+          // number columns: they're in "Ask on the call" and "Notes" instead.
           // Phone without its "+", so the formula guard in csvCell doesn't add an apostrophe.
-          cells.push(!fact ? "" : fact.value === null ? fact.display : key === "phone" ? fact.value.replace(/^\+/, "") : fact.value);
+          cells.push(!fact || fact.value === null ? "" : key === "phone" ? fact.value.replace(/^\+/, "") : fact.value);
         }
+        const present = factKeys.filter((key) => c.facts[key]);
         cells.push(askText(c.to_ask));
-        cells.push(factKeys.filter((key) => c.facts[key]).map((key) => `${FACT_NAMES[key]}: "${c.facts[key].quote}"`).join(" | "));
+        // What the tool did to reach each value: ranges, conversions, conflicts.
+        cells.push(present.map((key) => {
+          const fact = c.facts[key];
+          const parts = [];
+          if (FACT_UNITS[key] && String(fact.value) + " " + FACT_UNITS[key] !== fact.display) parts.push(`shown as "${fact.display}"`);
+          if (fact.note) parts.push(fact.note);
+          return parts.length ? `${FACT_NAMES[key]}: ${parts.join("; ")}` : null;
+        }).filter(Boolean).join(" | "));
+        cells.push(present.map((key) => `${FACT_NAMES[key]}: "${c.facts[key].quote}"`).join(" | "));
       }
       lines.push(cells.map(csvCell).join(","));
     }
