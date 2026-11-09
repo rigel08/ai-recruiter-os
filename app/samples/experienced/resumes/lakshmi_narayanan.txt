@@ -1,0 +1,16 @@
+Lakshmi Narayanan
+lakshmi.narayanan@example.com | (+91) 90000-00103 | Location: Chennai
+
+Lead Engineer with 8.10 years of experience in Java backend systems.
+
+Technical skills: Java, Spring Boot, SQL, PostgreSQL, REST APIs, AWS, Docker, Kubernetes, Redis, Terraform
+
+Career
+Lead Engineer, Bluewave Logistics Tech, Chennai (2020 to present)
+- Leads a team of 6 building shipment-tracking services in Spring Boot on AWS.
+Senior Engineer, Granite Software, Bengaluru (2018 to 2020)
+
+Notice Period: 90 Days (negotiable, buyout possible)
+Current CTC: Rs. 26,00,000 per annum
+Expected CTC: 30% hike
+Preferred Location: Hyderabad / Chennai

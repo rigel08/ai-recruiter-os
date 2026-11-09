@@ -1,0 +1,20 @@
+Senior Java Backend Developer, Hyderabad (permanent)
+
+Our client, a global capability centre in Hyderabad, is hiring a Senior Java Backend Developer for its payments platform.
+
+What you'll do
+- Design and build microservices in Java and Spring Boot.
+- Write and tune SQL on PostgreSQL or MySQL.
+- Build and document REST APIs used by other teams.
+- Deploy with Docker and Kubernetes on AWS, through a CI/CD pipeline.
+- Work in an Agile team and review other developers' code.
+
+What we're looking for
+- 5 to 9 years of experience in backend development.
+- Strong Java, Spring Boot and SQL.
+- Experience with REST APIs, Docker and AWS is preferred. Kubernetes and Redis are a plus.
+
+Client's limits
+- Notice period: 30 days or less preferred, 60 days at most.
+- Budget: up to 24 LPA.
+- Location: Hyderabad, five days a week in the office.

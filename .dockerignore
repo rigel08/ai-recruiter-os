@@ -14,3 +14,6 @@ docs/
 # The local outreach dashboard and research notes never ship in the image.
 outreach/
 research/
+
+# Measurement scripts and labelled test cases are for development only.
+evals/

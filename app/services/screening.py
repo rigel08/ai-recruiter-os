@@ -9,8 +9,9 @@ from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass
 
-from app.schemas.screening import CandidateResult, ScreeningResult
+from app.schemas.screening import CandidateFacts, CandidateResult, Fact, ScreeningResult
 from app.services.academics import find_cgpa
+from app.services.facts import FIELD_LABELS, FIELD_UNITS, extract_facts, questions_to_ask
 from app.services.parsing import UnreadableDocument, extract_text
 from app.services.scoring import explain, score_resume, word_counts
 from app.services.skills import skills_in, terms_from_input
@@ -62,6 +63,7 @@ def screen(
         summary = explain(score, len(must_haves), len(other_skills))
         if suggestion.cgpa_note:
             summary = f"{suggestion.cgpa_note} {summary}"
+        found = extract_facts(text)
 
         ranked.append(
             CandidateResult(
@@ -78,6 +80,12 @@ def screen(
                 summary=summary,
                 flags=suggestion.flags,
                 interview_questions=suggestion.interview_questions,
+                facts=CandidateFacts(**{
+                    field: Fact(value=fact.value, unit=FIELD_UNITS.get(field), display=fact.display,
+                                quote=fact.quote, note=fact.note, confirm=fact.confirm)
+                    for field, fact in found.items()
+                }),
+                to_ask=questions_to_ask(found),
             )
         )
 
@@ -93,6 +101,12 @@ def screen(
     for candidate in ranked:
         counts[candidate.decision] += 1
 
+    # A fact counts as covered only when it has a usable value, not just words like "negotiable".
+    coverage = {
+        field: sum(1 for c in ranked if (fact := getattr(c.facts, field)) is not None and fact.value is not None)
+        for field in FIELD_LABELS
+    }
+
     return ScreeningResult(
         must_haves=[term.name for term in must_haves],
         other_skills=[term.name for term in other_skills],
@@ -100,6 +114,7 @@ def screen(
         ranked_count=len(ranked),
         needs_review_count=len(needs_review),
         decision_counts=counts,
+        fact_coverage=coverage,
         candidates=ranked + needs_review,
     )
 

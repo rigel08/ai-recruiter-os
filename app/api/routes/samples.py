@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -19,24 +20,40 @@ class SampleResume(BaseModel):
 class Sample(BaseModel):
     job_description: str
     must_haves: str
-    min_cgpa: float
+    min_cgpa: float | None
     resumes: list[SampleResume]
 
 
-@lru_cache(maxsize=1)
-def load_sample() -> Sample:
+def _resumes(folder: Path) -> list[SampleResume]:
+    return [
+        SampleResume(file_name=path.name, text=path.read_text(encoding="utf-8"))
+        for path in sorted((folder / "resumes").glob("*.txt"))
+    ]
+
+
+@lru_cache(maxsize=2)
+def load_sample(kind: Literal["campus", "experienced"] = "campus") -> Sample:
+    if kind == "experienced":
+        folder = SAMPLES_DIR / "experienced"
+        return Sample(
+            job_description=(folder / "job_description.txt").read_text(encoding="utf-8"),
+            must_haves="Java, Spring Boot, SQL",
+            min_cgpa=None,
+            resumes=_resumes(folder),
+        )
     return Sample(
         job_description=(SAMPLES_DIR / "job_description.txt").read_text(encoding="utf-8"),
         must_haves="Python, SQL, REST APIs",
         min_cgpa=7.0,
-        resumes=[
-            SampleResume(file_name=path.name, text=path.read_text(encoding="utf-8"))
-            for path in sorted((SAMPLES_DIR / "resumes").glob("*.txt"))
-        ],
+        resumes=_resumes(SAMPLES_DIR),
     )
 
 
 @router.get("/samples", response_model=Sample)
-def get_sample() -> Sample:
-    """A fictional job and fictional resumes for demos. Nobody in them is real."""
-    return load_sample()
+def get_sample(kind: Literal["campus", "experienced"] = "campus") -> Sample:
+    """A fictional job and fictional resumes for demos. Nobody in them is real.
+
+    `kind=experienced` returns resumes that state notice period, CTC and experience in the
+    varied ways real ones do, including one that states almost nothing.
+    """
+    return load_sample(kind)

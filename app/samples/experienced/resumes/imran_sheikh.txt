@@ -1,0 +1,19 @@
+IMRAN SHEIKH
+Java Developer
+imran.sheikh@example.com
+Mobile: 9000000102
+
+PROFILE
+6+ years of experience in Java, Spring Boot and MySQL. I am an immediate joiner.
+
+SKILLS
+Java, Spring Boot, SQL, MySQL, REST APIs, Docker, Jenkins, Git, Agile
+
+EXPERIENCE
+Senior Developer, Coralbay Systems, Hyderabad (2021 to October 2026)
+- Built REST APIs for a lending platform and wrote unit tests with JUnit.
+- Moved builds to Jenkins and Docker.
+Developer, Pinewood Infotech, Chennai (2020 to 2021)
+
+CCTC: 14 LPA, ECTC: 18-20 LPA
+Location: Hyderabad

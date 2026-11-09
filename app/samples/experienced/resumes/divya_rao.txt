@@ -1,0 +1,23 @@
+Divya Rao
+Senior Software Engineer
+divya.rao@example.com | +91 90000 00101
+Current Location: Hyderabad
+
+Summary
+Backend engineer with 7 years of experience building payment services in Java and Spring Boot.
+
+Skills
+Java, Spring Boot, SQL, PostgreSQL, REST APIs, Docker, Kubernetes, AWS, Redis, CI/CD, Agile
+
+Work history
+Senior Software Engineer, Northgate Payments, Hyderabad (2022 to present)
+- Built settlement microservices in Java and Spring Boot handling 2 million transactions a day.
+- Tuned PostgreSQL queries and cut report time from 40 seconds to 3.
+Software Engineer, Lumen Retail Tech, Pune (2019 to 2022)
+- Built REST APIs for order tracking; deployed on AWS with Docker.
+
+Personal details
+Total Experience: 7 Years 2 Months
+Current CTC: 19.5 LPA
+Expected CTC: 24 LPA
+Notice Period: 30 Days

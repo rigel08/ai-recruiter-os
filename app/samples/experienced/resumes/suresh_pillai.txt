@@ -1,0 +1,16 @@
+Suresh Pillai
+suresh.pillai@example.com | +91 90000 00105
+Kochi, Kerala
+
+Full stack developer. 4 years of experience in Node.js and React, 2 years of experience in Java.
+
+Skills: JavaScript, Node.js, React, Java, SQL, MySQL, AWS
+
+Experience
+Software Engineer, Harbourline Apps, Kochi (2020 to present)
+- Built a booking portal in React and Node.js.
+- Maintained a Java reporting service and its MySQL queries.
+
+Notice Period: 60 days
+Notice Period: 45 days after appraisal cycle
+CTC: 9

@@ -1,0 +1,15 @@
+Tanvi Deshpande
+Senior Java Engineer
+tanvi.deshpande@example.com
+
+About me
+I build backend services in Java and Spring Boot for banking clients, and I enjoy mentoring junior developers.
+
+Skills
+Java, Spring Boot, SQL, PostgreSQL, REST APIs, Docker, AWS, Kubernetes, CI/CD
+
+Work
+Senior Java Engineer, Meridian Banking Tech, Pune (2020 to present)
+- Built account-opening microservices in Spring Boot with PostgreSQL.
+- Set up the CI/CD pipeline and Kubernetes deployments on AWS.
+Java Engineer, Opalstone Software, Pune (2017 to 2020)

@@ -109,3 +109,65 @@ def test_home_page_is_revalidated_so_updates_show_up():
 def test_uptime_monitors_can_use_head():
     assert client.head("/").status_code == 200
     assert client.head("/health").status_code == 200
+
+
+# ---------- 2.0: facts with evidence (additive; nothing above changes) ----------
+
+def test_campus_resumes_get_empty_facts_and_unchanged_fields():
+    response = client.post("/api/screenings", data={"job_description": JOB, "must_haves": "SQL, Excel"},
+                           files=files_for(ASHA))
+    body = response.json()
+    candidate = body["candidates"][0]
+    assert all(fact is None for fact in candidate["facts"].values())
+    assert len(candidate["to_ask"]) == 6
+    assert set(body["fact_coverage"].values()) == {0}
+    # The 1.0 fields are all still there.
+    for field in ("file_name", "status", "rank", "decision", "score", "name", "email", "cgpa", "must_haves_matched",
+                  "must_haves_missing", "other_skills_matched", "summary", "flags", "interview_questions"):
+        assert field in candidate
+
+
+def test_experienced_resume_facts_come_back_with_quotes():
+    resume = ("meena.txt", "\n".join([
+        *resume_lines("Meena Joshi", "meena@example.com", "SQL, Excel, Power BI"),
+        "Total Experience: 4 Years 6 Months",
+        "Current CTC: 7.2 LPA | Expected CTC: Negotiable | Notice Period: 30 days",
+    ]).encode(), "text/plain")
+    response = client.post("/api/screenings", data={"job_description": JOB}, files=files_for(resume, ASHA))
+    body = response.json()
+    meena = next(c for c in body["candidates"] if c["name"] == "Meena Joshi")
+    assert meena["facts"]["notice_period"] == {
+        "value": 30.0, "unit": "days", "display": "30 days", "note": None, "confirm": False,
+        "quote": "Current CTC: 7.2 LPA | Expected CTC: Negotiable | Notice Period: 30 days",
+    }
+    assert meena["facts"]["total_experience"]["value"] == 4.5
+    assert meena["facts"]["expected_ctc"]["value"] is None
+    assert 'Expected CTC: resume says "Negotiable"' in meena["to_ask"]
+    # Coverage counts usable values only, across both ranked resumes.
+    assert body["fact_coverage"]["notice_period"] == 1
+    assert body["fact_coverage"]["expected_ctc"] == 0
+
+
+def test_files_that_need_review_have_no_facts():
+    scan = ("scan.pdf", b"not a pdf", "application/pdf")
+    body = client.post("/api/screenings", data={"job_description": JOB}, files=files_for(scan, ASHA)).json()
+    review = next(c for c in body["candidates"] if c["status"] == "needs_review")
+    assert review["to_ask"] == [] and all(fact is None for fact in review["facts"].values())
+
+
+def test_experienced_sample_shows_found_unclear_and_missing_facts():
+    sample = client.get("/api/samples", params={"kind": "experienced"}).json()
+    assert sample["min_cgpa"] is None and len(sample["resumes"]) == 6
+    files = [("resumes", (r["file_name"], r["text"].encode(), "text/plain")) for r in sample["resumes"]]
+    body = client.post("/api/screenings", data={"job_description": sample["job_description"],
+                                                 "must_haves": sample["must_haves"]}, files=files).json()
+    by_name = {c["name"]: c for c in body["candidates"]}
+    assert by_name["Divya Rao"]["to_ask"] == []
+    assert len(by_name["Tanvi Deshpande"]["to_ask"]) == 6
+    assert by_name["Suresh Pillai"]["facts"]["notice_period"]["confirm"] is True
+    assert by_name["Pooja Bansal"]["facts"]["current_ctc"]["value"] == 13.2
+    assert body["fact_coverage"]["notice_period"] == 4
+
+
+def test_unknown_sample_kind_is_rejected():
+    assert client.get("/api/samples", params={"kind": "other"}).status_code == 422

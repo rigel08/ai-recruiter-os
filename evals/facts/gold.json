@@ -1,0 +1,487 @@
+{
+ "about": "Synthetic labelled cases for app/services/facts.py. Nobody in them is real. A field not listed under 'expect' must come back with no usable value. These were written by hand alongside the rules, so they show the rules do what was intended; they are not a measure of accuracy on real resumes.",
+ "cases": [
+  {
+   "id": "np-row",
+   "text": "Current CTC: 14.5 LPA | Expected CTC: 18 LPA | Notice Period: 60 days",
+   "expect": {
+    "current_ctc": 14.5,
+    "expected_ctc": 18,
+    "notice_period": 60
+   }
+  },
+  {
+   "id": "np-abbrev",
+   "text": "CCTC: 8.2 LPA, ECTC: 11 LPA, NP: 30 days",
+   "expect": {
+    "current_ctc": 8.2,
+    "expected_ctc": 11,
+    "notice_period": 30
+   }
+  },
+  {
+   "id": "np-immediate-label",
+   "text": "Notice Period - Immediate joiner",
+   "expect": {
+    "notice_period": 0
+   }
+  },
+  {
+   "id": "np-immediate-sentence",
+   "text": "I am an immediate joiner and can relocate.",
+   "expect": {
+    "notice_period": 0
+   }
+  },
+  {
+   "id": "np-months",
+   "text": "Notice period: 3 months",
+   "expect": {
+    "notice_period": 90
+   }
+  },
+  {
+   "id": "np-negotiable",
+   "text": "Notice Period: 2 Months (negotiable to 30 days)",
+   "expect": {
+    "notice_period": 60
+   }
+  },
+  {
+   "id": "np-serving",
+   "text": "Currently serving notice period. LWD: 28 Nov 2026",
+   "expect": {}
+  },
+  {
+   "id": "np-can-join",
+   "text": "Can join within 15 days of offer.",
+   "expect": {
+    "notice_period": 15
+   }
+  },
+  {
+   "id": "np-number-first",
+   "text": "90 days notice period, buyout possible",
+   "expect": {
+    "notice_period": 90
+   }
+  },
+  {
+   "id": "np-two-lines",
+   "text": "Notice Period:\n45 Days",
+   "expect": {
+    "notice_period": 45
+   }
+  },
+  {
+   "id": "np-weeks",
+   "text": "NP - 2 weeks",
+   "expect": {
+    "notice_period": 14
+   }
+  },
+  {
+   "id": "np-range",
+   "text": "Notice period: 30-45 days",
+   "expect": {
+    "notice_period": 45
+   }
+  },
+  {
+   "id": "np-serving-can-join",
+   "text": "Serving notice period, can join in 20 days",
+   "expect": {
+    "notice_period": 20
+   }
+  },
+  {
+   "id": "np-na",
+   "text": "Notice Period: NA",
+   "expect": {}
+  },
+  {
+   "id": "trap-np-project",
+   "text": "Reduced the vendor notice period from 60 days to 15 days by automating approvals.",
+   "expect": {}
+  },
+  {
+   "id": "trap-np-noticed",
+   "text": "Noticed a 30 days delay in reporting and fixed it.",
+   "expect": {}
+  },
+  {
+   "id": "trap-np-reminders",
+   "text": "Sent 15 days notice reminders to tenants through an SMS gateway.",
+   "expect": {}
+  },
+  {
+   "id": "trap-np-onboarding",
+   "text": "Managed a 90 days onboarding plan for new joiners.",
+   "expect": {}
+  },
+  {
+   "id": "exp-total",
+   "text": "Total Experience: 6 Years 4 Months",
+   "expect": {
+    "total_experience": 6.33
+   }
+  },
+  {
+   "id": "exp-overall",
+   "text": "Overall experience of 9+ years in Java and microservices.",
+   "expect": {
+    "total_experience": 9
+   }
+  },
+  {
+   "id": "exp-indian-decimal",
+   "text": "5.10 years of experience in manual and automation testing",
+   "expect": {
+    "total_experience": 5.83
+   }
+  },
+  {
+   "id": "exp-bare-label",
+   "text": "Experience: 3.5 Years",
+   "expect": {
+    "total_experience": 3.5
+   }
+  },
+  {
+   "id": "exp-largest-is-total",
+   "text": "Summary\n8 years of experience in SAP. 3 years of experience in S/4HANA migration.",
+   "expect": {
+    "total_experience": 8
+   }
+  },
+  {
+   "id": "exp-fresher",
+   "text": "Experience: Fresher",
+   "expect": {
+    "total_experience": 0
+   }
+  },
+  {
+   "id": "exp-it",
+   "text": "Total IT experience - 11 yrs",
+   "expect": {
+    "total_experience": 11
+   }
+  },
+  {
+   "id": "exp-table",
+   "text": "Total Experience\n7 Years",
+   "expect": {
+    "total_experience": 7
+   }
+  },
+  {
+   "id": "exp-months-sentence",
+   "text": "8 years 6 months of total experience in infrastructure support",
+   "expect": {
+    "total_experience": 8.5
+   }
+  },
+  {
+   "id": "trap-exp-heading",
+   "text": "WORK EXPERIENCE\n3 years at Infosys as Systems Engineer, Hyderabad",
+   "expect": {}
+  },
+  {
+   "id": "trap-exp-client",
+   "text": "Worked for a client with 25 years of experience in logistics.",
+   "expect": {}
+  },
+  {
+   "id": "trap-exp-requirement",
+   "text": "The role requires 5 years of experience in Python.",
+   "expect": {}
+  },
+  {
+   "id": "trap-exp-relevant",
+   "text": "Relevant experience: 4 years",
+   "expect": {}
+  },
+  {
+   "id": "ctc-rupees",
+   "text": "Current CTC: Rs. 12,50,000 per annum",
+   "expect": {
+    "current_ctc": 12.5
+   }
+  },
+  {
+   "id": "ctc-monthly",
+   "text": "Current Salary: 45,000 per month",
+   "expect": {
+    "current_ctc": 5.4
+   }
+  },
+  {
+   "id": "ctc-lakhs-hike",
+   "text": "Present CTC - 6 Lakhs; Expected CTC - 30% hike",
+   "expect": {
+    "current_ctc": 6
+   }
+  },
+  {
+   "id": "ctc-negotiable",
+   "text": "Expected CTC: Negotiable",
+   "expect": {}
+  },
+  {
+   "id": "ctc-pair",
+   "text": "Current/Expected CTC: 8/12 LPA",
+   "expect": {
+    "current_ctc": 8,
+    "expected_ctc": 12
+   }
+  },
+  {
+   "id": "ctc-fixed-variable",
+   "text": "CTC: 9.6 LPA (8 fixed + 1.6 variable)",
+   "expect": {
+    "current_ctc": 9.6
+   }
+  },
+  {
+   "id": "ctc-crore",
+   "text": "Current CTC 1.2 Cr, expecting a senior role",
+   "expect": {
+    "current_ctc": 120
+   }
+  },
+  {
+   "id": "ctc-usd",
+   "text": "Expected salary: USD 4000 per month",
+   "expect": {}
+  },
+  {
+   "id": "ctc-no-unit",
+   "text": "CTC: 7",
+   "expect": {
+    "current_ctc": 7
+   }
+  },
+  {
+   "id": "ctc-range",
+   "text": "ECTC: 15-18 LPA",
+   "expect": {
+    "expected_ctc": 18
+   }
+  },
+  {
+   "id": "ctc-confidential",
+   "text": "Current CTC: Confidential",
+   "expect": {}
+  },
+  {
+   "id": "ctc-k-monthly",
+   "text": "Current salary: 60k per month",
+   "expect": {
+    "current_ctc": 7.2
+   }
+  },
+  {
+   "id": "trap-ctc-recruiter",
+   "text": "Negotiated CTC of 12 LPA for 40+ lateral hires.",
+   "expect": {}
+  },
+  {
+   "id": "trap-ctc-project",
+   "text": "Built a CTC calculator used by 200 HR users.",
+   "expect": {}
+  },
+  {
+   "id": "trap-ctc-benchmarks",
+   "text": "Designed salary structures; current salary benchmarks covered 12 roles.",
+   "expect": {}
+  },
+  {
+   "id": "loc-current",
+   "text": "Current Location: Hyderabad, Telangana",
+   "expect": {
+    "current_location": "Hyderabad"
+   }
+  },
+  {
+   "id": "loc-header",
+   "text": "Location: Navi Mumbai | Phone: 9000000021",
+   "expect": {
+    "current_location": "Navi Mumbai",
+    "phone": "+91 90000 00021"
+   }
+  },
+  {
+   "id": "loc-sentence",
+   "text": "Currently based in Pune and open to relocation.",
+   "expect": {
+    "current_location": "Pune"
+   }
+  },
+  {
+   "id": "loc-preferred",
+   "text": "Preferred Location: Hyderabad / Bengaluru / Chennai",
+   "expect": {
+    "preferred_location": "Hyderabad, Bengaluru, Chennai"
+   }
+  },
+  {
+   "id": "loc-both",
+   "text": "Current Location: Bangalore (open to relocate)\nPreferred Location: Anywhere in India",
+   "expect": {
+    "current_location": "Bangalore",
+    "preferred_location": "Anywhere in India"
+   }
+  },
+  {
+   "id": "trap-loc-past-job",
+   "text": "Anil Varma\nSenior Java Developer\nanil.varma@example.com\nSummary\nBackend developer working on payments.\nSkills\nJava, Spring Boot, Kafka\nAWS, Docker\nEducation\nB.Tech, JNTU Hyderabad, 2016\nCertifications\nAWS Developer Associate\nProjects\nPayments gateway rewrite\nWork history\nTech Lead, Finserve Ltd, 2021 to present\nLocation: Chennai\nBuilt settlement services.",
+   "expect": {}
+  },
+  {
+   "id": "trap-loc-remote",
+   "text": "Location: Remote",
+   "expect": {}
+  },
+  {
+   "id": "phone-brackets",
+   "text": "Mobile: (+91) 90000-00031",
+   "expect": {
+    "phone": "+91 90000 00031"
+   }
+  },
+  {
+   "id": "phone-leading-zero",
+   "text": "Contact: 09000000044",
+   "expect": {
+    "phone": "+91 90000 00044"
+   }
+  },
+  {
+   "id": "trap-phone-aadhaar",
+   "text": "Aadhaar: 9123 4567 8901",
+   "expect": {}
+  },
+  {
+   "id": "trap-phone-ids",
+   "text": "Employee ID 20198765, PIN 500081, passport K1234567",
+   "expect": {}
+  },
+  {
+   "id": "trap-phone-placeholder",
+   "text": "Phone: 9999999999",
+   "expect": {}
+  },
+  {
+   "id": "row-compact",
+   "text": "Exp: 4 yrs | CTC: 6.5 LPA | ECTC: 9 LPA | NP: 15 Days | Location: Pune",
+   "expect": {
+    "total_experience": 4,
+    "current_ctc": 6.5,
+    "expected_ctc": 9,
+    "notice_period": 15,
+    "current_location": "Pune"
+   }
+  },
+  {
+   "id": "resume-full",
+   "text": "Sneha Kulkarni\nOracle Fusion Finance Consultant\nsneha.kulkarni@example.com | +91 90000 00052\nCurrent Location: Pune\nPROFESSIONAL SUMMARY\nOracle Fusion Financials consultant with 6+ years of experience across GL, AP and AR.\nWORK EXPERIENCE\nConsultant, Finedge Systems, Pune (Mar 2021 to present)\nLed 2 years of support for a retail client with 14 legal entities.\nPERSONAL DETAILS\nTotal Experience: 6 Years 2 Months\nCurrent CTC: 13 LPA\nExpected CTC: 17 LPA\nNotice Period: 90 Days",
+   "expect": {
+    "phone": "+91 90000 00052",
+    "current_location": "Pune",
+    "total_experience": 6.17,
+    "current_ctc": 13,
+    "expected_ctc": 17,
+    "notice_period": 90
+   }
+  },
+  {
+   "id": "resume-nothing-stated",
+   "text": "Arjun Mehta\nPython Developer\narjun.mehta@example.com\nSummary\nBackend developer building REST APIs with Django and PostgreSQL.\nExperience\nSoftware Engineer, Brightpath Labs (2022 to present)\nBuilt a billing service handling 30 days of invoice history per customer.",
+   "expect": {}
+  },
+  {
+   "id": "np-immediate-up-to",
+   "text": "Notice Period : Immediate / 15 Days",
+   "expect": {
+    "notice_period": 15
+   }
+  },
+  {
+   "id": "np-one-month-sentence",
+   "text": "I have a notice period of 1 month which is negotiable.",
+   "expect": {
+    "notice_period": 30
+   }
+  },
+  {
+   "id": "exp-team-leader",
+   "text": "Team leader with 6 years of experience in BPO operations",
+   "expect": {
+    "total_experience": 6
+   }
+  },
+  {
+   "id": "trap-exp-per-employer",
+   "text": "2 years of experience at TCS and 3 years of experience at Wipro",
+   "expect": {}
+  },
+  {
+   "id": "trap-exp-date-range",
+   "text": "Experience - 2019 to 2023",
+   "expect": {}
+  },
+  {
+   "id": "ctc-annual-inr",
+   "text": "Annual CTC: INR 18,00,000",
+   "expect": {
+    "current_ctc": 18
+   }
+  },
+  {
+   "id": "ctc-norms",
+   "text": "Current CTC: 5.5 Lakhs Per Annum   Expected CTC: As per company norms",
+   "expect": {
+    "current_ctc": 5.5
+   }
+  },
+  {
+   "id": "trap-ctc-offer",
+   "text": "Scholarship of Rs. 50,000 per annum; CTC offered: 4.5 LPA by a campus recruiter",
+   "expect": {}
+  },
+  {
+   "id": "trap-ctc-small-salary",
+   "text": "Salary: 25,000",
+   "expect": {}
+  },
+  {
+   "id": "trap-phone-link",
+   "text": "LinkedIn: linkedin.com/in/x-9000000090",
+   "expect": {}
+  },
+  {
+   "id": "trap-phone-email",
+   "text": "Email: ravi9000000090@example.com",
+   "expect": {}
+  },
+  {
+   "id": "trap-phone-landline",
+   "text": "Tel: 040 4121 9999",
+   "expect": {}
+  },
+  {
+   "id": "trap-loc-address",
+   "text": "Address: Flat 204, Kondapur, Hyderabad - 500084",
+   "expect": {}
+  },
+  {
+   "id": "np-other-field-negotiable",
+   "text": "Current CTC: 7.2 LPA | Expected CTC: Negotiable | Notice Period: 30 days",
+   "expect": {
+    "current_ctc": 7.2,
+    "notice_period": 30
+   }
+  }
+ ]
+}

@@ -149,6 +149,18 @@
   .review h3 { margin: 0 0 6px; font-size: 15px; }
   .review ul { margin: 0; padding-left: 18px; }
   .empty { color: var(--muted); padding: 16px 8px; }
+  .mode { display: flex; gap: 8px; align-items: flex-start; font-weight: 600; margin-bottom: 18px; cursor: pointer; }
+  .mode input { width: 16px; height: 16px; margin-top: 3px; flex: none; }
+  .facts { min-width: 230px; font-size: 13.5px; }
+  .facts dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; margin: 0; }
+  .facts dt { color: var(--muted); }
+  .facts dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .facts dd.unclear { color: var(--muted); font-style: italic; }
+  .facts .check { background: var(--warn-bg); color: var(--warn); border-radius: 4px; padding: 0 5px; font-size: 12px; font-style: normal; margin-left: 4px; }
+  .ask { margin: 6px 0 0; padding: 4px 8px; border-radius: 6px; background: var(--neutral-bg); font-size: 13px; }
+  .evidence { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+  .evidence q { color: var(--muted); }
+  .coverage { margin: 0 0 12px; font-size: 14px; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -179,6 +191,11 @@
         <input id="min-cgpa" name="min_cgpa" type="number" min="0" max="10" step="0.1" placeholder="e.g. 7.0">
       </div>
     </div>
+    <label class="mode" for="experienced">
+      <input id="experienced" type="checkbox">
+      <span>Hiring experienced candidates
+        <span class="hint">Show phone, experience, notice period, CTC and location from each resume, with the line each came from, and what's left to ask on the call.</span></span>
+    </label>
     <div class="field">
       <label for="resumes">Resumes <span class="hint">(PDF, DOCX or TXT, up to 200 files, 5 MB each)</span></label>
       <div id="drop" class="drop">
@@ -208,7 +225,7 @@
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>#</th><th>Candidate</th><th>Suggestion</th><th>Score</th><th>CGPA</th><th>Must-haves</th><th>Why</th></tr>
+          <tr><th>#</th><th>Candidate</th><th id="facts-head" hidden>From the resume</th><th>Suggestion</th><th>Score</th><th id="cgpa-head">CGPA</th><th>Must-haves</th><th>Why</th></tr>
         </thead>
         <tbody id="rows"></tbody>
       </table>
@@ -227,6 +244,23 @@
   const fileInput = $("resumes");
   let lastResult = null;
   let activeFilter = "all";
+
+  // ---------- Experienced-hire mode ----------
+
+  const FACTS = [
+    ["total_experience", "Experience"], ["notice_period", "Notice"], ["current_ctc", "Current CTC"],
+    ["expected_ctc", "Expected CTC"], ["current_location", "Location"], ["preferred_location", "Prefers"],
+  ];
+  const FACT_NAMES = { phone: "Phone", total_experience: "Total experience", notice_period: "Notice period",
+    current_ctc: "Current CTC", expected_ctc: "Expected CTC", current_location: "Current location",
+    preferred_location: "Preferred location" };
+  const experienced = $("experienced");
+  // Storage can be blocked (private windows), so the page must work without it.
+  try { experienced.checked = localStorage.getItem("experienced") === "1"; } catch {}
+  experienced.addEventListener("change", () => {
+    try { localStorage.setItem("experienced", experienced.checked ? "1" : "0"); } catch {}
+    if (lastResult) render();
+  });
 
   // ---------- Choosing files ----------
 
@@ -254,12 +288,12 @@
 
   $("sample").addEventListener("click", async () => {
     try {
-      const response = await fetch("/api/samples");
+      const response = await fetch("/api/samples?kind=" + (experienced.checked ? "experienced" : "campus"));
       if (!response.ok) throw new Error();
       const sample = await response.json();
       $("job-description").value = sample.job_description;
       $("must-haves").value = sample.must_haves;
-      $("min-cgpa").value = sample.min_cgpa.toFixed(1);
+      $("min-cgpa").value = sample.min_cgpa === null ? "" : sample.min_cgpa.toFixed(1);
       const transfer = new DataTransfer();
       for (const resume of sample.resumes) {
         transfer.items.add(new File([resume.text], resume.file_name, { type: "text/plain" }));
@@ -359,6 +393,19 @@
     }
     if (data.min_cgpa !== null) criteria.append(el("p", { style: "margin: 0 0 12px" }, el("strong", {}, "CGPA cut-off: "), cgpaText(data.min_cgpa)));
 
+    const showFacts = experienced.checked;
+    $("facts-head").hidden = !showFacts;
+    // CGPA is noise for experienced hires unless a cut-off was set.
+    $("cgpa-head").hidden = showFacts && data.min_cgpa === null;
+    if (showFacts && data.ranked_count) {
+      const found = [["notice_period", "notice period"], ["current_ctc", "current CTC"], ["expected_ctc", "expected CTC"],
+        ["total_experience", "total experience"], ["current_location", "current location"], ["phone", "phone"]]
+        .map(([key, label]) => `${label} ${data.fact_coverage[key]}`).join(", ");
+      criteria.append(el("p", { class: "coverage" },
+        el("strong", {}, `Stated on the resume, out of ${data.ranked_count}: `), found + ". ",
+        el("span", { class: "hint" }, "Blanks aren't guessed. They're listed under each candidate to ask on the call.")));
+    }
+
     const filters = [
       ["all", `All (${data.ranked_count + data.needs_review_count})`],
       ["shortlist", `Shortlist (${counts.shortlist})`],
@@ -400,19 +447,59 @@
         el("ol", {}, ...c.interview_questions.map((q) => el("li", {}, q)))));
     }
 
+    const showFacts = experienced.checked;
     return el("tr", {},
       el("td", { class: "rank" }, String(c.rank)),
       el("td", { class: "who" },
         el("strong", {}, c.name || c.file_name),
         c.email ? el("span", {}, c.email) : null,
+        showFacts && c.facts.phone ? el("span", {}, c.facts.phone.display) : null,
         c.name ? el("span", {}, c.file_name) : null),
+      showFacts ? factsCell(c) : null,
       el("td", {}, el("span", { class: `badge ${c.decision}` }, LABELS[c.decision])),
       el("td", { class: "score" },
         el("b", {}, String(c.score)), " / 100",
         el("div", { class: "bar" }, el("i", { style: `width: ${c.score}%` }))),
-      el("td", { class: "cgpa" }, c.cgpa === null ? "–" : cgpaText(c.cgpa)),
+      showFacts && lastResult.min_cgpa === null ? null
+        : el("td", { class: "cgpa" }, c.cgpa === null ? "–" : cgpaText(c.cgpa)),
       must,
       why);
+  }
+
+  // "Notice period: not on the resume" -> "Notice period"; other reasons are kept in brackets.
+  function askText(items) {
+    return items.map((item) => {
+      const cut = item.indexOf(": ");
+      const label = item.slice(0, cut), reason = item.slice(cut + 2);
+      return reason === "not on the resume" ? label : `${label} (${reason})`;
+    }).join(", ");
+  }
+
+  function factsCell(c) {
+    const cell = el("td", { class: "facts" });
+    const list = el("dl");
+    const evidence = [];
+    for (const [key, label] of FACTS) {
+      const fact = c.facts[key];
+      if (!fact) continue;
+      const value = el("dd", fact.value === null ? { class: "unclear" } : {}, fact.display);
+      if (fact.confirm) value.append(el("span", { class: "check" }, "check"));
+      list.append(el("dt", {}, label), value);
+    }
+    for (const key of Object.keys(FACT_NAMES)) {
+      const fact = c.facts[key];
+      if (fact) {
+        evidence.push(el("li", {}, el("strong", {}, FACT_NAMES[key] + ": "), el("q", {}, fact.quote),
+          fact.note ? " " + fact.note : null));
+      }
+    }
+    if (list.children.length) cell.append(list);
+    else cell.append(el("span", { class: "hint" }, "Nothing stated on the resume."));
+    if (c.to_ask.length) cell.append(el("p", { class: "ask" }, el("strong", {}, "Ask on the call: "), askText(c.to_ask)));
+    if (evidence.length) {
+      cell.append(el("details", {}, el("summary", {}, "Where each value came from"), el("ul", { class: "evidence" }, ...evidence)));
+    }
+    return cell;
   }
 
   // ---------- Exports ----------
@@ -439,13 +526,29 @@
   $("download").addEventListener("click", () => {
     const header = ["Rank", "Suggestion", "Name", "Email", "CGPA", "Score", "File", "Must-haves matched",
       "Must-haves missing", "Other skills matched", "Summary", "Flags", "Interview questions"];
+    const withFacts = experienced.checked;
+    const factKeys = Object.keys(FACT_NAMES);
+    if (withFacts) {
+      header.push("Phone", "Total experience (years)", "Notice period (days)", "Current CTC (LPA)",
+        "Expected CTC (LPA)", "Current location", "Preferred location", "Ask on the call", "Evidence");
+    }
     const lines = [header.map(csvCell).join(",")];
     for (const c of lastResult.candidates) {
       const ranked = c.status === "ranked";
-      lines.push([c.rank, ranked ? LABELS[c.decision] : "Needs a manual look", c.name, c.email, c.cgpa, c.score,
+      const cells = [c.rank, ranked ? LABELS[c.decision] : "Needs a manual look", c.name, c.email, c.cgpa, c.score,
         c.file_name, c.must_haves_matched.join("; "), c.must_haves_missing.join("; "),
-        c.other_skills_matched.join("; "), c.summary, c.flags.join(" "), c.interview_questions.join(" | ")]
-        .map(csvCell).join(","));
+        c.other_skills_matched.join("; "), c.summary, c.flags.join(" "), c.interview_questions.join(" | ")];
+      if (withFacts) {
+        for (const key of factKeys) {
+          const fact = c.facts[key];
+          // A number where the resume gives one; otherwise its words ("Negotiable"), or blank.
+          // Phone without its "+", so the formula guard in csvCell doesn't add an apostrophe.
+          cells.push(!fact ? "" : fact.value === null ? fact.display : key === "phone" ? fact.value.replace(/^\+/, "") : fact.value);
+        }
+        cells.push(askText(c.to_ask));
+        cells.push(factKeys.filter((key) => c.facts[key]).map((key) => `${FACT_NAMES[key]}: "${c.facts[key].quote}"`).join(" | "));
+      }
+      lines.push(cells.map(csvCell).join(","));
     }
     // The byte-order mark makes Excel open the file as UTF-8.
     const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });

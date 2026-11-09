@@ -20,6 +20,24 @@ Built for campus placement cells and small recruitment teams that still shortlis
 
 **Privacy:** resumes exist only for the length of one request. Nothing is stored.
 
+## New on the `v2` branch: facts with evidence
+
+Tick **Hiring experienced candidates** and each resume also shows its phone number, total experience, notice period, current and expected CTC, and location.
+
+- **Every value shows the line it came from.** Nothing is inferred.
+- **Blanks aren't guessed.** Anything missing or unclear is listed under "Ask on the call".
+- **Indian formats are understood:** LPA, lakhs and crores, "12,00,000", "45k per month", "5.10 years" (5 years 10 months), "NP", "CCTC", "ECTC" and "immediate joiner".
+- **Unclear cases are flagged,** such as two different notice periods on one resume.
+- **With the switch off, nothing changes:** the page, the CSV and the 1.0 API fields are as before.
+
+Check the extractor against its labelled cases:
+
+```bash
+.venv/bin/python -m evals.facts
+```
+
+Those cases are synthetic, so they show the rules behave as intended. They don't measure accuracy on real resumes. The plan for 2.0 is in [docs/v2/](docs/v2/README.md).
+
 ## Run it locally
 
 ```bash
@@ -66,7 +84,7 @@ Then open http://127.0.0.1:8770.
 | `min_cgpa` | No | 0–10. Blank means no cut-off |
 | `resumes` | Yes | One or more files, up to 200 |
 
-`GET /api/samples` returns the demo job and resumes. `GET /health` returns `{"status": "ok"}`.
+`GET /api/samples` returns the demo job and resumes; `?kind=experienced` returns the experienced-hire set. `GET /health` returns `{"status": "ok"}`.
 
 ## Layout
 
