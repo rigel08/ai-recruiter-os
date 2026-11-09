@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Recruiter OS</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --text: #15181d;
+    --muted: #5d6673;
+    --border: #dfe3e8;
+    --accent: #2457d6;
+    --accent-text: #ffffff;
+    --good: #1a7f4b;
+    --good-bg: #e6f4ec;
+    --bad: #b42318;
+    --bad-bg: #fdecea;
+    --warn: #8a5a00;
+    --warn-bg: #fff6e0;
+    --neutral-bg: #eef0f3;
+    --bar: #e9edf2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101317;
+      --surface: #181c22;
+      --text: #e8ebef;
+      --muted: #9aa4b1;
+      --border: #2b313a;
+      --accent: #6d95ff;
+      --accent-text: #0d1117;
+      --good: #5fd39a;
+      --good-bg: #16301f;
+      --bad: #ff8a80;
+      --bad-bg: #3a1c1a;
+      --warn: #f2c66d;
+      --warn-bg: #352b12;
+      --neutral-bg: #232830;
+      --bar: #262c35;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+  h1 { margin: 0; font-size: 24px; }
+  .lede { margin: 4px 0 0; color: var(--muted); max-width: 720px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  .hint { font-weight: 400; color: var(--muted); font-size: 13px; }
+  textarea, input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+  }
+  textarea { min-height: 170px; resize: vertical; }
+  .field { margin-bottom: 18px; }
+  .row { display: flex; flex-wrap: wrap; gap: 16px; }
+  .row > .field { flex: 1 1 220px; }
+  .row > .field.narrow { flex: 0 1 200px; }
+  @media (max-width: 520px) { .row > .field.narrow { flex-basis: 100%; } }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  button {
+    border: 0;
+    border-radius: 8px;
+    padding: 10px 18px;
+    background: var(--accent);
+    color: var(--accent-text);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  button:disabled { opacity: 0.6; cursor: wait; }
+  .drop {
+    border: 1.5px dashed var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    text-align: center;
+    background: var(--bg);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .drop.over { border-color: var(--accent); background: var(--surface); }
+  .drop input { display: block; margin: 8px auto 0; max-width: 100%; }
+  .file-list { margin: 8px 0 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+  .privacy { font-size: 13px; color: var(--muted); margin: 0; }
+  .error { background: var(--bad-bg); color: var(--bad); border-radius: 8px; padding: 10px 12px; margin-top: 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 14px; }
+  .chip { border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; font-size: 13px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+  .tab {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .tab[aria-pressed="true"] { background: var(--text); color: var(--surface); border-color: var(--text); }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; white-space: nowrap; }
+  .rank { font-weight: 700; width: 32px; }
+  .who { min-width: 230px; }
+  .who strong { display: block; }
+  .who span { display: block; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+  .score { width: 110px; }
+  .score b, .cgpa { font-variant-numeric: tabular-nums; }
+  .bar { height: 6px; background: var(--bar); border-radius: 3px; margin-top: 4px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); }
+  .badge { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .badge.shortlist { background: var(--good-bg); color: var(--good); }
+  .badge.maybe { background: var(--warn-bg); color: var(--warn); }
+  .badge.not_a_fit { background: var(--neutral-bg); color: var(--muted); }
+  .tag { display: inline-block; border-radius: 4px; padding: 0 6px; margin: 0 4px 4px 0; font-size: 12.5px; white-space: nowrap; }
+  .tag.has { background: var(--good-bg); color: var(--good); }
+  .tag.missing { background: var(--bad-bg); color: var(--bad); }
+  .why { min-width: 260px; }
+  .flag { margin: 6px 0 0; padding: 4px 8px; border-radius: 6px; background: var(--warn-bg); color: var(--warn); font-size: 13px; }
+  details { margin-top: 6px; }
+  summary { cursor: pointer; color: var(--accent); font-size: 13px; font-weight: 600; }
+  details ol { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+  .review { background: var(--warn-bg); border-radius: 8px; padding: 12px 14px; margin-top: 16px; }
+  .review h3 { margin: 0 0 6px; font-size: 15px; }
+  .review ul { margin: 0; padding-left: 18px; }
+  .empty { color: var(--muted); padding: 16px 8px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>AI Recruiter OS</h1>
+      <p class="lede">Paste a job description, add resumes, and get a ranked shortlist with a suggested next step and a reason for every candidate.</p>
+    </div>
+    <button id="sample" type="button" class="secondary">Try it with sample data</button>
+  </header>
+
+  <form id="screen-form" class="card">
+    <div class="field">
+      <label for="job-description">Job description</label>
+      <textarea id="job-description" name="job_description" required minlength="30"
+        placeholder="Paste the full job description here"></textarea>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="must-haves">Must-have skills <span class="hint">(optional, comma-separated)</span></label>
+        <input id="must-haves" name="must_haves" type="text"
+          placeholder="e.g. Python, SQL, REST APIs. Leave blank to use the job description's skills">
+      </div>
+      <div class="field narrow">
+        <label for="min-cgpa">Minimum CGPA <span class="hint">(optional, out of 10)</span></label>
+        <input id="min-cgpa" name="min_cgpa" type="number" min="0" max="10" step="0.1" placeholder="e.g. 7.0">
+      </div>
+    </div>
+    <div class="field">
+      <label for="resumes">Resumes <span class="hint">(PDF, DOCX or TXT, up to 200 files, 5 MB each)</span></label>
+      <div id="drop" class="drop">
+        Drag resumes here, or choose files
+        <input id="resumes" name="resumes" type="file" multiple accept=".pdf,.docx,.txt" required>
+        <p id="file-list" class="file-list" hidden></p>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="submit" type="submit">Rank resumes</button>
+      <p class="privacy">Resumes are read for this screening only and aren't saved.</p>
+    </div>
+    <div id="error" class="error" role="alert" hidden></div>
+  </form>
+
+  <section id="results" class="card" hidden aria-live="polite">
+    <div class="actions" style="justify-content: space-between; margin-bottom: 8px;">
+      <h2 id="results-title" style="margin: 0; font-size: 18px;"></h2>
+      <div class="actions">
+        <button id="copy-emails" type="button" class="secondary">Copy shortlisted emails</button>
+        <button id="download" type="button">Download CSV</button>
+        <button id="again" type="button" class="secondary">Screen another batch</button>
+      </div>
+    </div>
+    <div id="criteria"></div>
+    <div id="tabs" class="tabs" role="group" aria-label="Filter candidates"></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Candidate</th><th>Suggestion</th><th>Score</th><th>CGPA</th><th>Must-haves</th><th>Why</th></tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <p id="empty" class="empty" hidden>No candidates in this group.</p>
+    </div>
+    <div id="review" class="review" hidden>
+      <h3>Need a manual look</h3>
+      <ul id="review-list"></ul>
+    </div>
+  </section>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const LABELS = { shortlist: "Shortlist", maybe: "Maybe", not_a_fit: "Not a fit" };
+  const fileInput = $("resumes");
+  let lastResult = null;
+  let activeFilter = "all";
+
+  // ---------- Choosing files ----------
+
+  function showFileList() {
+    const names = [...fileInput.files].map((file) => file.name);
+    const list = $("file-list");
+    list.hidden = names.length === 0;
+    const shown = names.slice(0, 5).join(", ");
+    list.textContent = `${names.length} file${names.length === 1 ? "" : "s"}: ${shown}` +
+      (names.length > 5 ? ` and ${names.length - 5} more` : "");
+  }
+
+  fileInput.addEventListener("change", showFileList);
+  const drop = $("drop");
+  drop.addEventListener("dragover", (event) => { event.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  drop.addEventListener("drop", (event) => {
+    event.preventDefault();
+    drop.classList.remove("over");
+    if (event.dataTransfer.files.length) {
+      fileInput.files = event.dataTransfer.files;
+      showFileList();
+    }
+  });
+
+  $("sample").addEventListener("click", async () => {
+    try {
+      const response = await fetch("/api/samples");
+      if (!response.ok) throw new Error();
+      const sample = await response.json();
+      $("job-description").value = sample.job_description;
+      $("must-haves").value = sample.must_haves;
+      $("min-cgpa").value = sample.min_cgpa.toFixed(1);
+      const transfer = new DataTransfer();
+      for (const resume of sample.resumes) {
+        transfer.items.add(new File([resume.text], resume.file_name, { type: "text/plain" }));
+      }
+      fileInput.files = transfer.files;
+      showFileList();
+      form.requestSubmit();
+    } catch {
+      showError("The sample data couldn't be loaded. Please try again.");
+    }
+  });
+
+  // ---------- Screening ----------
+
+  const form = $("screen-form");
+  const submit = $("submit");
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const files = fileInput.files;
+    const body = new FormData();
+    body.append("job_description", $("job-description").value);
+    body.append("must_haves", $("must-haves").value);
+    if ($("min-cgpa").value !== "") body.append("min_cgpa", $("min-cgpa").value);
+    for (const file of files) body.append("resumes", file);
+
+    $("error").hidden = true;
+    submit.disabled = true;
+    submit.textContent = `Ranking ${files.length} resume${files.length === 1 ? "" : "s"}…`;
+    try {
+      const response = await fetch("/api/screenings", { method: "POST", body });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(errorMessage(data));
+      lastResult = data;
+      activeFilter = "all";
+      render();
+      $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (error) {
+      showError(error.message);
+    } finally {
+      submit.disabled = false;
+      submit.textContent = "Rank resumes";
+    }
+  });
+
+  function showError(message) {
+    $("error").textContent = message || "Something went wrong. Please try again.";
+    $("error").hidden = false;
+  }
+
+  function errorMessage(data) {
+    const detail = data && data.detail;
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail) && detail.length) {
+      const field = detail[0].loc ? detail[0].loc[detail[0].loc.length - 1] : "";
+      if (field === "job_description") return "The job description needs to be between 30 and 20,000 characters.";
+      if (field === "must_haves") return "The must-have list is too long. Keep it under 2,000 characters.";
+      if (field === "min_cgpa") return "The minimum CGPA must be a number from 0 to 10.";
+      if (field === "resumes") return "Choose at least one resume.";
+    }
+    return "Something went wrong. Please try again.";
+  }
+
+  // ---------- Results ----------
+
+  function el(tag, attrs = {}, ...children) {
+    const node = document.createElement(tag);
+    for (const [key, value] of Object.entries(attrs)) {
+      if (key === "class") node.className = value;
+      else if (key === "style") node.style.cssText = value;
+      else node.setAttribute(key, value);
+    }
+    for (const child of children) {
+      if (child !== null && child !== undefined && child !== false) node.append(child);
+    }
+    return node;
+  }
+
+  const chips = (names) => el("div", { class: "chips" }, ...names.map((name) => el("span", { class: "chip" }, name)));
+  const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  // 7 -> "7.0", 8.25 -> "8.25": the same format the server uses in summaries.
+  const cgpaText = (value) => {
+    const text = value.toFixed(2).replace(/0+$/, "");
+    return text.endsWith(".") ? text + "0" : text;
+  };
+
+  function render() {
+    const data = lastResult;
+    const counts = data.decision_counts;
+    $("results-title").textContent = `Ranked ${plural(data.ranked_count, "resume")}`;
+
+    const criteria = $("criteria");
+    criteria.replaceChildren();
+    if (data.must_haves.length) criteria.append(el("strong", {}, "Must-haves"), chips(data.must_haves));
+    if (data.other_skills.length) {
+      criteria.append(el("strong", {}, "Other skills from the job description"), chips(data.other_skills));
+    }
+    if (data.min_cgpa !== null) criteria.append(el("p", { style: "margin: 0 0 12px" }, el("strong", {}, "CGPA cut-off: "), cgpaText(data.min_cgpa)));
+
+    const filters = [
+      ["all", `All (${data.ranked_count + data.needs_review_count})`],
+      ["shortlist", `Shortlist (${counts.shortlist})`],
+      ["maybe", `Maybe (${counts.maybe})`],
+      ["not_a_fit", `Not a fit (${counts.not_a_fit})`],
+    ];
+    if (data.needs_review_count) filters.push(["review", `Need a manual look (${data.needs_review_count})`]);
+    const tabs = $("tabs");
+    tabs.replaceChildren(...filters.map(([key, label]) => {
+      const tab = el("button", { type: "button", class: "tab", "aria-pressed": String(key === activeFilter) }, label);
+      tab.addEventListener("click", () => { activeFilter = key; render(); });
+      return tab;
+    }));
+
+    const ranked = data.candidates.filter((c) => c.status === "ranked");
+    const visible = ranked.filter((c) => activeFilter === "all" || c.decision === activeFilter);
+    $("rows").replaceChildren(...visible.map(row));
+    $("empty").hidden = visible.length > 0 || activeFilter === "review";
+
+    const review = data.candidates.filter((c) => c.status === "needs_review");
+    $("review-list").replaceChildren(...review.map((c) => el("li", {}, el("strong", {}, c.file_name), ": " + c.summary)));
+    $("review").hidden = review.length === 0 || !(activeFilter === "all" || activeFilter === "review");
+
+    $("copy-emails").disabled = !ranked.some((c) => c.decision === "shortlist" && c.email);
+    $("results").hidden = false;
+  }
+
+  function row(c) {
+    const must = el("td");
+    for (const skill of c.must_haves_matched) must.append(el("span", { class: "tag has" }, "✓ " + skill));
+    for (const skill of c.must_haves_missing) must.append(el("span", { class: "tag missing" }, "✗ " + skill));
+    if (!lastResult.must_haves.length) must.append(el("span", { class: "hint" }, "None set"));
+
+    const why = el("td", { class: "why" }, c.summary);
+    for (const flag of c.flags) why.append(el("p", { class: "flag" }, flag));
+    if (c.interview_questions.length) {
+      why.append(el("details", {},
+        el("summary", {}, "Suggested interview questions"),
+        el("ol", {}, ...c.interview_questions.map((q) => el("li", {}, q)))));
+    }
+
+    return el("tr", {},
+      el("td", { class: "rank" }, String(c.rank)),
+      el("td", { class: "who" },
+        el("strong", {}, c.name || c.file_name),
+        c.email ? el("span", {}, c.email) : null,
+        c.name ? el("span", {}, c.file_name) : null),
+      el("td", {}, el("span", { class: `badge ${c.decision}` }, LABELS[c.decision])),
+      el("td", { class: "score" },
+        el("b", {}, String(c.score)), " / 100",
+        el("div", { class: "bar" }, el("i", { style: `width: ${c.score}%` }))),
+      el("td", { class: "cgpa" }, c.cgpa === null ? "–" : cgpaText(c.cgpa)),
+      must,
+      why);
+  }
+
+  // ---------- Exports ----------
+
+  $("copy-emails").addEventListener("click", async () => {
+    const button = $("copy-emails");
+    const emails = lastResult.candidates.filter((c) => c.decision === "shortlist" && c.email).map((c) => c.email);
+    try {
+      await navigator.clipboard.writeText(emails.join(", "));
+      button.textContent = `Copied ${plural(emails.length, "email")}`;
+    } catch {
+      button.textContent = "Couldn't copy. Use the CSV instead";
+    }
+    setTimeout(() => { button.textContent = "Copy shortlisted emails"; }, 2500);
+  });
+
+  // Values come from resumes, so stop spreadsheet apps treating them as formulas.
+  function csvCell(value) {
+    let text = value === null || value === undefined ? "" : String(value);
+    if (/^[=+\-@\t\r]/.test(text)) text = "'" + text;
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+
+  $("download").addEventListener("click", () => {
+    const header = ["Rank", "Suggestion", "Name", "Email", "CGPA", "Score", "File", "Must-haves matched",
+      "Must-haves missing", "Other skills matched", "Summary", "Flags", "Interview questions"];
+    const lines = [header.map(csvCell).join(",")];
+    for (const c of lastResult.candidates) {
+      const ranked = c.status === "ranked";
+      lines.push([c.rank, ranked ? LABELS[c.decision] : "Needs a manual look", c.name, c.email, c.cgpa, c.score,
+        c.file_name, c.must_haves_matched.join("; "), c.must_haves_missing.join("; "),
+        c.other_skills_matched.join("; "), c.summary, c.flags.join(" "), c.interview_questions.join(" | ")]
+        .map(csvCell).join(","));
+    }
+    // The byte-order mark makes Excel open the file as UTF-8.
+    const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const link = el("a", { href: URL.createObjectURL(blob), download: "shortlist.csv" });
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(link.href);
+  });
+
+  $("again").addEventListener("click", () => {
+    fileInput.value = "";
+    showFileList();
+    $("results").hidden = true;
+    lastResult = null;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  // A link ending in ?demo=1 runs the sample straight away, for demos.
+  if (new URLSearchParams(location.search).has("demo")) $("sample").click();
+</script>
+</body>
+</html>

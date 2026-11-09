@@ -1,0 +1,26 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ai-recruiter-os",
+      "runtimeExecutable": ".venv/bin/uvicorn",
+      "runtimeArgs": [
+        "app.main:app",
+        "--port",
+        "8765"
+      ],
+      "port": 8765
+    },
+    {
+      "name": "outreach-crm",
+      "runtimeExecutable": ".venv/bin/python",
+      "runtimeArgs": [
+        "-m",
+        "outreach",
+        "--port",
+        "8770"
+      ],
+      "port": 8770
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+Software Engineer (Backend), Campus Hiring 2027
+Northwind Labs (fictional company), Hyderabad
+
+Eligibility: B.Tech CSE or IT, 2027 batch, CGPA 7.0 or above.
+
+What you'll do:
+- Build REST APIs in Python using FastAPI or Django.
+- Design PostgreSQL schemas and write efficient SQL.
+- Package and deploy services with Docker on AWS.
+- Write tests with pytest and ship through CI/CD.
+
+Good to have: React, Redis, Git.

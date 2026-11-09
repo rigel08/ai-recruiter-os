@@ -1,0 +1,8 @@
+Sneha Patil
+sneha.patil@example.com
+Education: B.Tech, Computer Science, 2027 (CGPA 8.9/10)
+Skills: Python, SQL, Pandas, NumPy, Power BI, Tableau, Excel, Statistics
+Projects:
+- Sales Dashboard: cleaned 50,000 rows of retail data with Pandas and built a Power BI dashboard for weekly reporting.
+- Customer Churn Analysis: logistic regression model in Python; presented findings to faculty.
+Internship: Data Analyst Intern at a logistics company (Summer 2026).

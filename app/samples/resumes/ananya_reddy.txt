@@ -1,0 +1,8 @@
+ANANYA REDDY
+ananya.reddy@example.com | Hyderabad
+Education: B.Tech, Computer Science and Engineering, 2027 | CGPA 8.7 / 10
+Skills: Python, FastAPI, PostgreSQL, SQL, REST APIs, Docker, AWS, Git, pytest
+Projects:
+- Campus Events API: FastAPI and PostgreSQL service used by 1,200 students; containerised with Docker and deployed on AWS EC2.
+- Wrote pytest suites with 90% coverage and set up GitHub Actions for CI/CD.
+Internship: Backend Intern, a Hyderabad fintech start-up (May to July 2026). Built REST endpoints for loan applications.

@@ -1,0 +1,7 @@
+Meera Iyer
+meera.iyer@example.com
+B.Des, Communication Design, 2027 | CGPA 8.1
+Skills: Figma, UI/UX, Photoshop, HTML, CSS, user research
+Projects:
+- Redesigned a college canteen ordering app; usability tests with 20 students cut ordering time by a third.
+- Brand identity for a student-run cafe.

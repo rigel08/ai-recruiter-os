@@ -1,0 +1,8 @@
+Vikram Singh
+vikram.singh@example.com
+B.Tech, Computer Science, 2027
+Skills: Python, FastAPI, SQL, REST APIs, PostgreSQL, Linux
+Projects:
+- Job Board API: FastAPI backend with PostgreSQL full-text search and pagination.
+- Server Monitor: Python script that alerts on high CPU and disk usage over Linux SSH.
+Open source: fixed two documentation bugs in a popular Python library.

@@ -1,0 +1,8 @@
+Karthik Menon
+karthik.menon@example.com
+Education: B.Tech, Information Technology, 2027, CGPA: 7.8
+Technical skills: Python, Django, MySQL, SQL, RESTful APIs, React, Git, HTML, CSS
+Projects:
+- Library Management System: Django REST backend with a React frontend; role-based access for librarians and students.
+- Expense Splitter: Python and MySQL app with weekly email summaries.
+Achievements: Finalist, college hackathon 2025.

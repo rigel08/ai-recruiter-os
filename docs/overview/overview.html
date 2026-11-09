@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AI Recruiter OS Overview</title>
+<style>
+  @page { size: A4; margin: 13mm 14mm 12mm; }
+  * { box-sizing: border-box; }
+  :root {
+    --text: #15181d;
+    --muted: #5d6673;
+    --border: #dfe3e8;
+    --soft: #f4f6f9;
+    --accent: #2457d6;
+    --accent-soft: #e9effc;
+    --good: #1a7f4b;
+    --good-soft: #e6f4ec;
+    --warn: #8a5a00;
+    --warn-soft: #fff6e0;
+    --neutral-soft: #eef0f3;
+  }
+  body {
+    margin: 0;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 9.6pt;
+    line-height: 1.42;
+    color: var(--text);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  h1 { margin: 0; font-size: 24pt; letter-spacing: -0.3pt; }
+  h2 {
+    margin: 13pt 0 6pt;
+    font-size: 11.5pt;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.8pt;
+  }
+  h3 { margin: 0 0 3pt; font-size: 10.2pt; }
+  p { margin: 0 0 5pt; }
+  .eyebrow { font-size: 8.6pt; font-weight: 700; letter-spacing: 1pt; text-transform: uppercase; color: var(--accent); }
+  .tagline { margin: 3pt 0 2pt; font-size: 13pt; font-weight: 500; }
+  .for { color: var(--muted); font-size: 9.6pt; }
+  .masthead { padding-bottom: 9pt; border-bottom: 1.2pt solid var(--text); }
+  .problem { font-size: 10.2pt; }
+  .steps { display: flex; gap: 8pt; }
+  .step { flex: 1; background: var(--soft); border-radius: 6pt; padding: 8pt 10pt; }
+  .step .n {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16pt; height: 16pt; border-radius: 50%;
+    background: var(--accent); color: #fff; font-weight: 700; font-size: 8.6pt; margin-bottom: 4pt;
+  }
+  .step p { margin: 0; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6pt 14pt; }
+  .item b { margin-right: 2pt; }
+  .pill { display: inline-block; border-radius: 99pt; padding: 0.5pt 6pt; font-size: 8.4pt; font-weight: 700; }
+  .pill.good { background: var(--good-soft); color: var(--good); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .pill.neutral { background: var(--neutral-soft); color: var(--muted); }
+  .shot { margin: 10pt 0 0; }
+  .shot img { width: 100%; border: 0.8pt solid var(--border); border-radius: 6pt; display: block; }
+  .shot figcaption { margin-top: 4pt; font-size: 8.4pt; color: var(--muted); }
+  .callout {
+    margin-top: 9pt; padding: 7pt 10pt; border-left: 3pt solid var(--good);
+    background: var(--good-soft); border-radius: 0 6pt 6pt 0;
+  }
+  .callout p { margin: 0; }
+  ul { margin: 0; padding-left: 12pt; }
+  li { margin: 1.5pt 0; }
+
+  /* Page 2 */
+  .pipeline { display: flex; align-items: stretch; gap: 0; margin-top: 2pt; }
+  .stage {
+    flex: 1; border: 0.8pt solid var(--border); border-radius: 6pt; padding: 6pt 7pt;
+    background: #fff; font-size: 8.5pt; color: var(--muted);
+  }
+  .stage b { display: block; color: var(--text); font-size: 9.2pt; margin-bottom: 1pt; }
+  .stage code { font-size: 7.6pt; color: var(--accent); }
+  .arrow { display: flex; align-items: center; padding: 0 3pt; color: var(--muted); font-size: 11pt; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14pt; }
+  table { width: 100%; border-collapse: collapse; font-size: 8.9pt; }
+  th, td { text-align: left; padding: 3.5pt 5pt; border-bottom: 0.6pt solid var(--border); vertical-align: top; }
+  th { font-size: 8.2pt; color: var(--muted); font-weight: 700; }
+  td.num { font-weight: 700; white-space: nowrap; }
+  td.label { white-space: nowrap; }
+  .stage code { white-space: nowrap; }
+  .note { font-size: 8.5pt; color: var(--muted); margin-top: 4pt; }
+  .stats { display: flex; gap: 8pt; margin-top: 2pt; }
+  .stat { flex: 1; background: var(--accent-soft); border-radius: 6pt; padding: 7pt 9pt; }
+  .stat .big { font-size: 16pt; font-weight: 700; color: var(--accent); line-height: 1.1; }
+  .stat p { margin: 2pt 0 0; font-size: 8.5pt; color: var(--muted); }
+  .accuracy li b { font-weight: 700; }
+  footer {
+    margin-top: 12pt; padding-top: 6pt; border-top: 0.8pt solid var(--border);
+    display: flex; justify-content: space-between; font-size: 8.3pt; color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ PAGE 1: WHAT IT DOES ============ -->
+<section class="page">
+  <div class="masthead">
+    <div class="eyebrow">Product overview</div>
+    <h1>AI Recruiter OS</h1>
+    <p class="tagline">Shortlist hundreds of resumes in seconds, with a reason for every decision.</p>
+    <p class="for">For campus placement cells and small recruitment teams that still shortlist by hand.</p>
+  </div>
+
+  <h2>The problem</h2>
+  <p class="problem">Every opening brings a pile of resumes that someone reads one by one. It takes hours, two people
+  rarely shortlist the same way, and good candidates get missed late in the pile.</p>
+
+  <h2>How it works</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="n">1</div>
+      <h3>Paste the job</h3>
+      <p>Optionally add must-have skills and a minimum CGPA.</p>
+    </div>
+    <div class="step">
+      <div class="n">2</div>
+      <h3>Add resumes</h3>
+      <p>Up to 200 at once: PDF, Word (DOCX) or text.</p>
+    </div>
+    <div class="step">
+      <div class="n">3</div>
+      <h3>Get the shortlist</h3>
+      <p>Seconds later, everyone is ranked and explained.</p>
+    </div>
+  </div>
+
+  <h2>What you get for every candidate</h2>
+  <div class="grid">
+    <div class="item"><b>A suggestion:</b>
+      <span class="pill good">Shortlist</span> <span class="pill warn">Maybe</span> <span class="pill neutral">Not a fit</span></div>
+    <div class="item"><b>A score</b> from 0 to 100, to compare at a glance</div>
+    <div class="item"><b>A reason:</b> "Has 2 of 3 must-haves; missing Python."</div>
+    <div class="item"><b>Warnings,</b> such as "No CGPA found on the resume"</div>
+    <div class="item"><b>Interview questions</b> that probe the gaps</div>
+    <div class="item"><b>Exports:</b> filters, CSV download, copy shortlisted emails</div>
+  </div>
+
+  <figure class="shot">
+    <img src="screenshot.png" alt="The results screen: candidates ranked with suggestions, scores, CGPA, must-haves and reasons">
+    <figcaption>The results screen with the built-in sample data (first three candidates shown). Everyone in it is fictional.</figcaption>
+  </figure>
+
+  <div class="callout">
+    <p><b>Private by design.</b> Resumes are read for one screening, then discarded. Nothing is stored. Files it can't
+    read, such as scanned images, are listed for a person to check instead of being quietly ranked last.</p>
+  </div>
+</section>
+
+<!-- ============ PAGE 2: HOW IT WORKS ============ -->
+<section class="page">
+  <h2 style="margin-top: 0">Under the hood</h2>
+  <p>Each screening passes through six small, separately tested steps:</p>
+  <div class="pipeline">
+    <div class="stage"><b>1. Read</b>Files to text<br><code>parsing.py</code></div>
+    <div class="arrow">→</div>
+    <div class="stage"><b>2. Find skills</b>Whole-word matching<br><code>skills.py</code></div>
+    <div class="arrow">→</div>
+    <div class="stage"><b>3. Score</b>0 to 100<br><code>scoring.py</code></div>
+    <div class="arrow">→</div>
+    <div class="stage"><b>4. CGPA</b>Common formats<br><code>academics.py</code></div>
+    <div class="arrow">→</div>
+    <div class="stage"><b>5. Suggest</b>Rules + questions<br><code>suggestions.py</code></div>
+    <div class="arrow">→</div>
+    <div class="stage"><b>6. Rank</b>Group, then sort<br><code>screening.py</code></div>
+  </div>
+
+  <div class="two">
+    <div>
+      <h2>How the score works</h2>
+      <table>
+        <tr><th>Part</th><th>Weight</th><th>What it measures</th></tr>
+        <tr><td class="label">Must-haves</td><td class="num">60%</td><td>Share of the recruiter's must-haves on the resume</td></tr>
+        <tr><td class="label">Other skills</td><td class="num">30%</td><td>Share of the job description's other skills found</td></tr>
+        <tr><td class="label">Wording</td><td class="num">10%</td><td>How closely the wording matches (cosine similarity)</td></tr>
+      </table>
+      <p class="note">If a part doesn't apply, for example no must-haves were given, it's left out and the others are scaled up to fill 100.</p>
+    </div>
+    <div>
+      <h2>How suggestions are decided</h2>
+      <table>
+        <tr><th>Situation</th><th>Suggestion</th></tr>
+        <tr><td>CGPA found and below the cut-off</td><td><span class="pill neutral">Not a fit</span></td></tr>
+        <tr><td>Has every must-have</td><td><span class="pill good">Shortlist</span></td></tr>
+        <tr><td>Missing one of two or more must-haves</td><td><span class="pill warn">Maybe</span></td></tr>
+        <tr><td>Missing more than that</td><td><span class="pill neutral">Not a fit</span></td></tr>
+        <tr><td>No must-haves given</td><td>Score: 60+ Shortlist, 35–59 Maybe</td></tr>
+      </table>
+      <p class="note">Simple rules on purpose: a recruiter can predict every decision. Someone ruled out only by CGPA is called out, in case the cut-off is relaxed.</p>
+    </div>
+  </div>
+
+  <h2>Accuracy details that matter</h2>
+  <div class="two accuracy">
+    <ul>
+      <li><b>"Java" never matches "JavaScript".</b> Skills match only as whole terms, and "C++", "C#" and "Node.js" match exactly.</li>
+      <li><b>"Eager to excel" isn't Microsoft Excel.</b> Words that are also everyday English only count when capitalised as a skill.</li>
+      <li><b>Spellings are understood.</b> "Postgres" counts as PostgreSQL, and "ReactJS" as React.</li>
+    </ul>
+    <ul>
+      <li><b>CGPA is read carefully.</b> "CGPA 8.20 / 10", "8.5 CGPA" and "C.G.P.A - 7.9" all work. A 4-point GPA or a percentage is ignored, never guessed.</li>
+      <li><b>Missing information is flagged, not punished.</b> No CGPA on a resume means a warning, not a rejection.</li>
+      <li><b>Unreadable files go to a person.</b> Scanned images, old .doc files and damaged files are listed separately.</li>
+    </ul>
+  </div>
+
+  <h2>By the numbers</h2>
+  <div class="stats">
+    <div class="stat"><div class="big">~2 s</div><p>to screen 200 resumes, measured on an 8-core laptop</p></div>
+    <div class="stat"><div class="big">3.6×</div><p>faster by spreading the parsing across CPU cores</p></div>
+    <div class="stat"><div class="big">68</div><p>automated tests, covering every suggestion rule</p></div>
+    <div class="stat"><div class="big">0</div><p>resumes stored after a screening</p></div>
+  </div>
+
+  <div class="two">
+    <div>
+      <h2>Built with</h2>
+      <ul>
+        <li><b>Backend:</b> Python 3.11, FastAPI, pypdf</li>
+        <li><b>Frontend:</b> plain HTML, CSS and JavaScript, safe against script and spreadsheet-formula injection</li>
+        <li><b>Deployment:</b> a Dockerfile for cloud hosts</li>
+      </ul>
+    </div>
+    <div>
+      <h2>Honest limits and what's next</h2>
+      <ul>
+        <li>It finds whether a skill appears, not how good someone is at it. The interview questions help check.</li>
+        <li>Scanned resumes need a person, because reading text from images (OCR) isn't built yet.</li>
+        <li>Next: pilot with a placement cell, deploy, then optional AI summaries with the organisation's consent.</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    <span>Built by Srihith Rao · srihithrao13@gmail.com · github.com/rigel08</span>
+    <span>November 2026</span>
+  </footer>
+</section>
+
+</body>
+</html>

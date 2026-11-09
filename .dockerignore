@@ -1,0 +1,16 @@
+.venv/
+.git/
+.claude/
+.pytest_cache/
+__pycache__/
+tests/
+docs/
+*.pdf
+*.html
+!app/static/*.html
+.env
+.DS_Store
+
+# The local outreach dashboard and research notes never ship in the image.
+outreach/
+research/

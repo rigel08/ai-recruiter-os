@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+.DS_Store
+
+# Personal files that were copied here; they don't belong in the repo.
+Srihith_Rao_Resume.pdf
+resume.html
+
+# Outreach dashboard data: private notes and contacts. Never commit it.
+outreach/data/

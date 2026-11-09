@@ -1,0 +1,8 @@
+Rahul Sharma
+rahul.sharma@example.com
+B.Tech CSE, 2027, CGPA 7.4
+Skills: Java, Spring Boot, MySQL, SQL, REST API design, Docker, Git
+Projects:
+- Hotel Booking Service: Spring Boot REST API with MySQL, JWT authentication and Docker Compose.
+- Chat App: Java sockets, multi-room chat with message history.
+Certifications: Oracle Java SE fundamentals.
