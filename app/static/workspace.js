@@ -276,3 +276,270 @@ function showReview(before, updated, draft) {
   callDialog.replaceChildren(head, body, el("div", { class: "sheet-foot" }, back, accept));
   accept.focus();
 }
+
+// ---------- Duplicates and the selection bar ----------
+
+function duplicateNotes(data) {
+  return (data.duplicates || []).map((group) => el("p", { class: "notice warn" },
+    el("strong", {}, "Possible duplicate: "),
+    `${group.file_names.join(" and ")} look like the same person (${group.names[0]}). ${group.reason} Call and submit only one.`));
+}
+
+function selectedCandidates() {
+  if (!lastResult || lastResult.hiring_mode !== "experienced") return [];
+  return lastResult.candidates.filter((c) => c.status === "ranked" && compared.has(c.file_name));
+}
+
+function renderSelection() {
+  const chosen = selectedCandidates();
+  const isExperienced = lastResult && lastResult.hiring_mode === "experienced";
+  $("selection").hidden = !isExperienced;
+  if (!isExperienced) return;
+  $("selection-count").textContent = chosen.length ? `${chosen.length} selected` : "Tick candidates to compare them or prepare a client submission.";
+  $("prepare-submission").disabled = chosen.length === 0;
+  $("selection-clear").hidden = chosen.length === 0;
+}
+
+$("selection-clear").addEventListener("click", () => { compared.clear(); render(); });
+
+// ---------- Client submission: draft, edit, preview, export ----------
+
+let submission = null;   // { title, includeContact, showSources, order, excluded, profiles, checks, preparedOn }
+
+$("prepare-submission").addEventListener("click", async () => {
+  const status = $("selection-status");
+  status.textContent = " Preparing…";
+  try {
+    const draft = await postJson("/api/submissions/draft", {
+      result: baseResult, clarifications, file_names: selectedCandidates().map((c) => c.file_name), title: jobTitle() });
+    const before = submission;
+    const edited = Object.fromEntries(((before && before.profiles) || []).map((profile) => [profile.file_name, profile]));
+    submission = {
+      title: before ? before.title : draft.title,
+      includeContact: before ? before.includeContact : false,   // contact details stay out unless the recruiter turns them on
+      showSources: before ? before.showSources : true,
+      order: before ? before.order : draft.profiles[0].fields.map((field) => field.key),
+      excluded: before ? before.excluded : new Set(),
+      preparedOn: draft.prepared_on,
+      checks: draft.checks,
+      // Keep what the recruiter already wrote for a candidate; refresh everything else.
+      profiles: draft.profiles.map((profile) => {
+        const old = edited[profile.file_name];
+        if (!old) return { ...profile, touched: {} };
+        const fields = profile.fields.map((field) => {
+          const was = old.fields.find((f) => f.key === field.key);
+          return old.touched[field.key] && was ? { ...field, value: was.value, source: was.source } : field;
+        });
+        return { ...profile, fields, touched: old.touched,
+          summary: old.touched.summary ? old.summary : profile.summary,
+          remarks: old.touched.remarks ? old.remarks : profile.remarks };
+      }),
+    };
+    status.textContent = "";
+    renderSubmission();
+    $("submission").scrollIntoView({ behavior: "smooth", block: "start" });
+    if (typeof sessionChanged === "function") sessionChanged();
+  } catch (error) { status.textContent = " " + error.message; }
+});
+
+function submissionDocument() {
+  const position = (key) => { const index = submission.order.indexOf(key); return index === -1 ? 999 : index; };
+  return {
+    title: submission.title,
+    prepared_on: submission.preparedOn,
+    include_contact: submission.includeContact,
+    show_sources: submission.showSources,
+    profiles: submission.profiles.map((profile) => ({
+      file_name: profile.file_name, name: profile.name, summary: profile.summary, strengths: profile.strengths,
+      remarks: profile.remarks, missing: profile.missing, checks: profile.checks,
+      fields: [...profile.fields].sort((a, b) => position(a.key) - position(b.key))
+        .map((field) => ({ ...field, included: !submission.excluded.has(field.key) })),
+    })),
+  };
+}
+
+const MARKS = { recruiter_confirmed: "confirmed with candidate", recruiter_entered: "from recruiter's call" };
+
+// The client-facing page. It shows only known, included details; contact details only when switched on.
+function renderDocument() {
+  const doc = submissionDocument();
+  const page = el("article", { class: "doc", id: "sub-doc", "aria-label": "Preview of the submission" });
+  page.append(el("h2", {}, doc.title || "Candidate profiles"),
+    el("p", { class: "prepared" }, `Prepared ${new Date(doc.prepared_on + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })} · ${doc.profiles.length} candidate${doc.profiles.length === 1 ? "" : "s"}`));
+  let marked = false;
+  doc.profiles.forEach((profile, index) => {
+    const block = el("section", { class: "profile" }, el("h3", {}, doc.profiles.length > 1 ? `${index + 1}. ${profile.name}` : profile.name));
+    if (profile.summary.trim()) block.append(el("p", { style: "margin: 0" }, profile.summary.trim()));
+    const list = el("dl");
+    for (const field of profile.fields) {
+      if (!field.included || !field.value || (field.contact && !doc.include_contact)) continue;
+      const value = el("dd", {}, field.value);
+      if (doc.show_sources && MARKS[field.source]) { value.append(el("span", { class: "mark" }, ` (${MARKS[field.source]})`)); marked = true; }
+      list.append(el("dt", {}, field.label), value);
+    }
+    if (list.children.length) block.append(list);
+    if (profile.strengths.length) block.append(el("strong", {}, "Strengths for this role"), el("ul", {}, ...profile.strengths.map((item) => el("li", {}, item))));
+    if (profile.remarks.trim()) block.append(el("p", { style: "margin: 0" }, el("strong", {}, "Recruiter's remarks: "), profile.remarks.trim()));
+    page.append(block);
+  });
+  if (marked) page.append(el("p", { class: "legend" }, "Details marked in brackets were confirmed with, or provided by, the candidate on a call. All other details are as stated on the candidate's resume."));
+  return page;
+}
+
+function refreshPreview() {
+  $("sub-doc").replaceWith(renderDocument());
+  if (typeof sessionChanged === "function") sessionChanged();
+}
+
+function renderSubmission() {
+  const section = $("submission");
+  document.body.classList.toggle("has-submission", Boolean(submission));
+  section.hidden = !submission;
+  if (!submission) { section.replaceChildren(); return; }
+
+  const close = el("button", { type: "button", class: "secondary" }, "Close submission");
+  close.addEventListener("click", () => { submission = null; renderSubmission(); if (typeof sessionChanged === "function") sessionChanged(); });
+  const head = el("div", { class: "actions no-print", style: "justify-content: space-between; margin-bottom: 12px" },
+    el("h2", { style: "margin: 0; font-size: 18px" }, `Client submission (${submission.profiles.length})`), close);
+
+  // --- options
+  const title = el("input", { type: "text", id: "sub-title", maxlength: "200" });
+  title.value = submission.title;
+  title.addEventListener("input", () => { submission.title = title.value; refreshPreview(); });
+  const toggle = (id, text, key) => {
+    const box = el("input", { type: "checkbox", id });
+    box.checked = submission[key];
+    box.addEventListener("change", () => { submission[key] = box.checked; refreshPreview(); });
+    return el("label", { class: "mode", for: id, style: "margin: 8px 0 0" }, box, el("span", {}, text));
+  };
+  const options = el("div", { class: "sub-card" }, el("h3", {}, "The document"),
+    el("label", { for: "sub-title" }, "Heading"), title,
+    toggle("sub-contact", "Include phone and email (left out unless you tick this)", "includeContact"),
+    toggle("sub-sources", "Mark details that came from a call, not the resume", "showSources"));
+
+  // --- which details, in what order (applies to every candidate)
+  const labels = Object.fromEntries(submission.profiles[0].fields.map((field) => [field.key, field.label]));
+  const contactKeys = new Set(submission.profiles[0].fields.filter((field) => field.contact).map((field) => field.key));
+  const fieldList = el("ul", { class: "field-list" });
+  const drawFields = () => {
+    fieldList.replaceChildren(...submission.order.map((key, index) => {
+      const box = el("input", { type: "checkbox" });
+      box.checked = !submission.excluded.has(key);
+      box.addEventListener("change", () => { if (box.checked) submission.excluded.delete(key); else submission.excluded.add(key); refreshPreview(); });
+      const move = (step, symbol, word) => {
+        const button = el("button", { type: "button", class: "icon-button", "aria-label": `Move ${labels[key]} ${word}` }, symbol);
+        button.disabled = index + step < 0 || index + step >= submission.order.length;
+        button.addEventListener("click", () => {
+          const order = submission.order;
+          [order[index], order[index + step]] = [order[index + step], order[index]];
+          drawFields();
+          refreshPreview();
+          fieldList.children[index + step].querySelector(`button[aria-label$="${word}"]`).focus();
+        });
+        return button;
+      };
+      return el("li", {}, el("label", {}, box, labels[key], contactKeys.has(key) ? el("span", { class: "hint" }, "(contact)") : null),
+        move(-1, "↑", "up"), move(1, "↓", "down"));
+    }));
+  };
+  drawFields();
+  const fieldsCard = el("div", { class: "sub-card" }, el("h3", {}, "Details to include, in order"),
+    el("p", { class: "reason" }, "Applies to every candidate. Details that aren't known are left out, never filled in."), fieldList);
+
+  // --- one card per candidate
+  const cards = submission.profiles.map((profile, index) => {
+    const summary = el("textarea", { maxlength: "3000", id: `sub-summary-${index}` });
+    summary.value = profile.summary;
+    summary.addEventListener("input", () => { profile.summary = summary.value; profile.touched.summary = true; refreshPreview(); });
+    const remarks = el("textarea", { maxlength: "2000", id: `sub-remarks-${index}`, placeholder: "Your recommendation, interview impressions, availability for interviews" });
+    remarks.value = profile.remarks;
+    remarks.addEventListener("input", () => { profile.remarks = remarks.value; profile.touched.remarks = true; refreshPreview(); });
+
+    const move = (step, symbol, word) => {
+      const button = el("button", { type: "button", class: "icon-button", "aria-label": `Move ${profile.name} ${word}` }, symbol);
+      button.disabled = index + step < 0 || index + step >= submission.profiles.length;
+      button.addEventListener("click", () => {
+        const list = submission.profiles;
+        [list[index], list[index + step]] = [list[index + step], list[index]];
+        renderSubmission();
+      });
+      return button;
+    };
+    const remove = el("button", { type: "button", class: "icon-button", "aria-label": `Remove ${profile.name} from the submission` }, "Remove");
+    remove.addEventListener("click", () => {
+      submission.profiles.splice(index, 1);
+      if (!submission.profiles.length) submission = null;
+      renderSubmission();
+    });
+
+    const card = el("div", { class: "sub-card" },
+      el("div", { class: "actions", style: "justify-content: space-between" }, el("h3", {}, `${index + 1}. ${profile.name}`),
+        el("span", { class: "actions" }, move(-1, "↑", "up"), move(1, "↓", "down"), remove)));
+    if (profile.checks.length) {
+      card.append(el("ul", { class: "preflight", "aria-label": "Checks before you send" },
+        ...profile.checks.map((check) => el("li", { class: check.level }, check.text))));
+    } else {
+      card.append(el("p", { class: "reason" }, "No conflicts or unknowns against the client's requirements."));
+    }
+    if (profile.missing.length) card.append(el("p", { class: "reason" }, el("strong", {}, "Not known, so left out: "), profile.missing.join(", ") + "."));
+    card.append(el("label", { for: `sub-summary-${index}` }, "Summary ", el("span", { class: "hint" }, "(a starting point built from known details: rewrite it)")), summary,
+      el("label", { for: `sub-remarks-${index}` }, "Your remarks to the client"), remarks);
+
+    // Any detail can be corrected by hand. A changed value is marked as coming from the recruiter.
+    const rows = profile.fields.map((field) => {
+      const input = el("input", { type: "text", maxlength: "300", "aria-label": `${field.label} for ${profile.name}` });
+      input.value = field.value || "";
+      input.addEventListener("input", () => {
+        field.value = input.value.trim() || null;
+        field.source = field.value ? "recruiter_entered" : "unknown";
+        profile.touched[field.key] = true;
+        refreshPreview();
+      });
+      return el("tr", {}, el("td", {}, field.label), el("td", { style: "width: 60%" }, input));
+    });
+    card.append(el("details", {}, el("summary", {}, "Edit this candidate's details"),
+      el("p", { class: "reason" }, "A detail you change here is marked as coming from you, not the resume. It changes this document only."),
+      el("table", { class: "edit-fields" }, el("tbody", {}, ...rows))));
+    return card;
+  });
+
+  // --- export
+  const status = el("span", { class: "hint", role: "status" });
+  const exportButton = (text, action, primary) => {
+    const button = el("button", { type: "button", class: primary ? "" : "secondary" }, text);
+    button.addEventListener("click", async () => {
+      status.textContent = "";
+      try { await action(); } catch (error) { status.textContent = " " + error.message; }
+    });
+    return button;
+  };
+  const fetchExport = async (format) => {
+    const response = await fetch(`/api/submissions/export?format=${format}`, { method: "POST",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify(submissionDocument()) });
+    if (!response.ok) throw new Error("The file couldn't be built. Check the entries and try again.");
+    return response;
+  };
+  const save = async (format, fileName) => {
+    const link = el("a", { href: URL.createObjectURL(await (await fetchExport(format)).blob()), download: fileName });
+    document.body.append(link); link.click(); link.remove(); URL.revokeObjectURL(link.href);
+  };
+  const conflicts = submission.profiles.reduce((count, profile) => count + profile.checks.filter((check) => check.level === "conflict").length, 0);
+  const exports = el("div", { class: "sub-card no-print" }, el("h3", {}, "Send it yourself"),
+    el("p", { class: "reason" }, "Nothing is sent from here. Print or save the page, or copy or download the profiles, then send them your usual way."),
+    conflicts ? el("p", { class: "notice warn" }, `${conflicts} conflict${conflicts === 1 ? "" : "s"} with the client's requirements above. You can still send; make sure it's deliberate.`) : null,
+    el("div", { class: "actions" },
+      exportButton("Print or save as PDF", async () => window.print(), true),
+      exportButton("Copy as text", async () => {
+        const text = await (await fetchExport("text")).text();
+        await navigator.clipboard.writeText(text);
+        status.textContent = " Copied.";
+      }),
+      exportButton("Download Excel", () => save("xlsx", "candidate-profiles.xlsx")),
+      exportButton("Download CSV", () => save("csv", "candidate-profiles.csv")), status));
+
+  const batch = submission.checks.length
+    ? el("ul", { class: "preflight no-print" }, ...submission.checks.map((check) => el("li", { class: check.level }, check.text))) : null;
+  const editor = el("div", { class: "no-print" }, options, fieldsCard, ...cards);
+  const preview = el("div", {}, el("h3", { class: "no-print", style: "margin: 0 0 8px; font-size: 15px" }, "Preview: what the client sees"), renderDocument(), exports);
+  section.replaceChildren(head, ...(batch ? [batch] : []), el("div", { class: "sub-grid" }, editor, preview));
+}

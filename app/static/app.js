@@ -275,7 +275,7 @@ function render() {
   const criteria = $("criteria");
   criteria.replaceChildren();
   if (isExperienced) {
-    criteria.append(...requirementsSummary(data));
+    criteria.append(...requirementsSummary(data), ...duplicateNotes(data));
   } else {
     if (data.must_haves.length) criteria.append(el("strong", {}, "Must-haves"), chips(data.must_haves));
     if (data.other_skills.length) {
@@ -445,6 +445,7 @@ function experiencedRow(c) {
 const MAX_COMPARED = 4;
 
 function renderCompare() {
+  renderSelection();
   const chosen = lastResult && lastResult.hiring_mode === "experienced"
     ? lastResult.candidates.filter((c) => c.status === "ranked" && compared.has(c.file_name)) : [];
   const section = $("compare");
