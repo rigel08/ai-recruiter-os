@@ -210,6 +210,7 @@ form.addEventListener("submit", async (event) => {
     if (!response.ok) throw new Error(errorMessage(data));
     startResult(data);
     render();
+    afterScreening();
     $("results").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (error) {
     showError(error.message);
@@ -309,6 +310,7 @@ function render() {
   $("copy-emails").textContent = copyLabel();
   $("copy-emails").disabled = !ranked.some((c) => groupOf(c) === top && c.email);
   renderCompare();
+  renderSessionBar();
   $("results").hidden = false;
 }
 
@@ -570,6 +572,7 @@ $("again").addEventListener("click", () => {
   baseResult = null;
   clarifications = {};
   compared.clear();
+  leaveSession();
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
 

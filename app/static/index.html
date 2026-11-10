@@ -216,6 +216,11 @@
   .arrow { color: var(--muted); margin: 0 4px; }
   .notice { background: var(--neutral-bg); border-radius: 8px; padding: 8px 12px; font-size: 13.5px; margin: 0 0 12px; }
   .notice.warn { background: var(--warn-bg); color: var(--warn); }
+  .session-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: var(--neutral-bg); border-radius: 8px;
+    padding: 8px 12px; margin: 0 0 14px; font-size: 14px; }
+  .session-bar input[type="text"] { width: auto; flex: 1 1 220px; padding: 7px 10px; }
+  .session-bar button { margin: 0; }
+  .sessions-table td, .sessions-table th { vertical-align: middle; }
   .selection { position: sticky; top: 0; z-index: 2; background: var(--surface); padding: 8px 0; margin-bottom: 4px; border-bottom: 1px solid var(--border); }
   .sub-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
   @media (max-width: 980px) { .sub-grid { grid-template-columns: 1fr; } }
@@ -266,7 +271,10 @@
       <h1>AI Recruiter OS</h1>
       <p class="lede">Paste a job description, add resumes, and get a ranked shortlist with a suggested next step and a reason for every candidate.</p>
     </div>
-    <button id="sample" type="button" class="secondary">Try it with sample data</button>
+    <div class="actions">
+      <button id="sessions-open" type="button" class="secondary" hidden>Saved sessions</button>
+      <button id="sample" type="button" class="secondary">Try it with sample data</button>
+    </div>
   </header>
 
   <form id="screen-form" class="card">
@@ -360,6 +368,7 @@
         <button id="again" type="button" class="secondary">Screen another batch</button>
       </div>
     </div>
+    <div id="session-bar" class="session-bar" hidden></div>
     <div id="criteria"></div>
     <div id="tabs" class="tabs" role="group" aria-label="Filter candidates"></div>
     <div id="selection" class="selection actions" hidden>
@@ -403,6 +412,7 @@
 </main>
 
 <dialog id="call-dialog" class="sheet" aria-labelledby="call-title"></dialog>
+<dialog id="sessions-dialog" class="sheet" aria-labelledby="sessions-title"></dialog>
 <script src="/static/app.js"></script>
 <script src="/static/workspace.js"></script>
 </body>

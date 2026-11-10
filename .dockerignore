@@ -17,3 +17,6 @@ research/
 
 # Measurement scripts and labelled test cases are for development only.
 evals/
+
+# Saved sessions stay on the recruiter's own computer.
+data/

@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import clarifications, exports, requirements, samples, screenings, submissions
+from app.api.routes import clarifications, exports, requirements, samples, screenings, submissions, workspace
 from app.services.screening import shutdown_pool
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -26,6 +26,8 @@ app.include_router(requirements.router)
 app.include_router(exports.router)
 app.include_router(clarifications.router)
 app.include_router(submissions.router)
+app.include_router(workspace.info_router)
+app.include_router(workspace.router)
 
 
 # HEAD too, because uptime monitors often use it.

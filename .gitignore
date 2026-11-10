@@ -11,3 +11,6 @@ resume.html
 
 # Outreach dashboard data: private notes and contacts. Never commit it.
 outreach/data/
+
+# Saved screening sessions: candidates' details and the recruiter's notes. Never commit it.
+data/

@@ -279,10 +279,12 @@ function showReview(before, updated, draft) {
 
 // ---------- Duplicates and the selection bar ----------
 
+// Shown above the candidates: duplicates within this batch, then people already in other saved sessions.
 function duplicateNotes(data) {
-  return (data.duplicates || []).map((group) => el("p", { class: "notice warn" },
+  const inBatch = (data.duplicates || []).map((group) => el("p", { class: "notice warn" },
     el("strong", {}, "Possible duplicate: "),
     `${group.file_names.join(" and ")} look like the same person (${group.names[0]}). ${group.reason} Call and submit only one.`));
+  return [...inBatch, ...seenNotes()];
 }
 
 function selectedCandidates() {
@@ -543,3 +545,192 @@ function renderSubmission() {
   const preview = el("div", {}, el("h3", { class: "no-print", style: "margin: 0 0 8px; font-size: 15px" }, "Preview: what the client sees"), renderDocument(), exports);
   section.replaceChildren(head, ...(batch ? [batch] : []), el("div", { class: "sub-grid" }, editor, preview));
 }
+
+// ---------- Saved sessions (stored in a file on this computer, when the app runs locally) ----------
+
+let workspaceInfo = { enabled: false, note: "" };
+let currentSession = null;   // { id, name, status } once this evaluation has been saved
+let seenElsewhere = [];      // candidates here who are also in another saved session
+let savedAt = "";
+let saveTimer = null;
+
+const FORM_BOXES = { must_haves: "must-haves", preferred_skills: "preferred-skills", min_experience_years: "min-exp",
+  max_experience_years: "max-exp", max_notice_days: "max-notice", max_ctc_lpa: "max-ctc", locations: "locations" };
+const SESSION_STATUSES = { open: "Open", submitted: "Submitted to client", on_hold: "On hold", closed: "Closed" };
+
+async function workspaceCall(method, path, body) {
+  const options = { method, headers: method === "GET" ? {} : { "X-Workspace": "1" } };
+  if (body !== undefined) { options.headers["Content-Type"] = "application/json"; options.body = JSON.stringify(body); }
+  const response = await fetch("/api/workspace" + path, options);
+  if (response.status === 204) return null;
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new Error((data && typeof data.detail === "string" && data.detail) || "That couldn't be saved. Try again.");
+  return data;
+}
+
+const clockTime = () => new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+const storedSubmission = () => (submission ? { ...submission, excluded: [...submission.excluded] } : null);
+
+function seenNotes() {
+  return seenElsewhere.map((seen) => el("p", { class: "notice warn" }, el("strong", {}, "Seen before: "),
+    `${seen.name} (${seen.file_name}) is also in your saved session “${seen.session_name}” from ${seen.saved_on}, ` +
+    `which is marked ${SESSION_STATUSES[seen.session_status].toLowerCase()}. Same ${seen.matched_on}. Check before calling or submitting again.`));
+}
+
+async function checkSeen() {
+  seenElsewhere = [];
+  if (!workspaceInfo.enabled || !baseResult || baseResult.hiring_mode !== "experienced") return;
+  try {
+    seenElsewhere = await workspaceCall("POST", "/seen", { result: baseResult, exclude_session: currentSession ? currentSession.id : null });
+    if (seenElsewhere.length) render();
+  } catch { /* a convenience only: the evaluation is unaffected */ }
+}
+
+function afterScreening() {
+  currentSession = null;
+  submission = null;
+  renderSubmission();
+  renderSessionBar();
+  checkSeen();
+}
+
+function leaveSession() {
+  currentSession = null;
+  seenElsewhere = [];
+  submission = null;
+  renderSubmission();
+}
+
+function renderSessionBar() {
+  const bar = $("session-bar");
+  const show = workspaceInfo.enabled && lastResult && lastResult.hiring_mode === "experienced";
+  bar.hidden = !show;
+  if (!show) return;
+  if (!currentSession) {
+    const name = el("input", { type: "text", maxlength: "120", "aria-label": "Name for this session" });
+    name.value = jobTitle();
+    const save = el("button", { type: "button", class: "small" }, "Save session");
+    const status = el("span", { class: "hint", role: "status" });
+    const run = async () => {
+      if (!name.value.trim()) { status.textContent = "Give it a name."; return; }
+      save.disabled = true;
+      try {
+        const form = Object.fromEntries(Object.entries(FORM_BOXES).map(([key, id]) => [key, $(id).value]));
+        const saved = await workspaceCall("POST", "/sessions", { name: name.value.trim(), job_description: $("job-description").value,
+          form, result: baseResult, clarifications, submission: storedSubmission() });
+        currentSession = { id: saved.id, name: saved.name, status: saved.status };
+        savedAt = clockTime();
+        renderSessionBar();
+        checkSeen();
+      } catch (error) { status.textContent = error.message; save.disabled = false; }
+    };
+    save.addEventListener("click", run);
+    name.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); run(); } });
+    bar.replaceChildren(el("span", {}, el("strong", {}, "Not saved. "), "This evaluation is gone when you close or reload the page."), name, save, status);
+    return;
+  }
+  const status = el("select", { "aria-label": "Session status" },
+    ...Object.entries(SESSION_STATUSES).map(([value, label]) => el("option", { value }, label)));
+  status.value = currentSession.status;
+  status.addEventListener("change", async () => {
+    try {
+      await workspaceCall("PATCH", `/sessions/${currentSession.id}`, { status: status.value });
+      currentSession.status = status.value;
+      savedAt = clockTime();
+      renderSessionBar();
+    } catch (error) { status.value = currentSession.status; }
+  });
+  bar.replaceChildren(el("span", {}, el("strong", {}, "Saved on this computer: "), currentSession.name), status,
+    el("span", { class: "hint", id: "session-saved", role: "status" }, savedAt ? `Saved ${savedAt}. Call notes and the submission save as you go.` : ""));
+}
+
+// Called whenever call notes or the submission change. Saves quietly if this evaluation has been saved before.
+function sessionChanged() {
+  if (!currentSession) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    const note = $("session-saved");
+    try {
+      const stored = storedSubmission();
+      await workspaceCall("PATCH", `/sessions/${currentSession.id}`,
+        stored ? { clarifications, submission: stored } : { clarifications, clear_submission: true });
+      savedAt = clockTime();
+      if (note) note.textContent = `Saved ${savedAt}. Call notes and the submission save as you go.`;
+    } catch (error) {
+      if (note) note.textContent = `Not saved: ${error.message}`;
+    }
+  }, 500);
+}
+
+async function openSession(id) {
+  const session = await workspaceCall("GET", `/sessions/${id}`);
+  if (!experienced.checked) experienced.click();
+  $("job-description").value = session.job_description;
+  for (const [key, boxId] of Object.entries(FORM_BOXES)) $(boxId).value = session.form[key] || "";
+  for (const boxId of Object.values(FORM_BOXES)) { const line = $("src-" + boxId); if (line) line.hidden = true; }
+  fileInput.value = "";
+  showFileList();
+  startResult(session.result, session.clarifications);
+  if (Object.keys(session.clarifications).length) {
+    lastResult = await postJson("/api/clarifications/apply", { result: session.result, clarifications: session.clarifications });
+  }
+  currentSession = { id: session.id, name: session.name, status: session.status };
+  savedAt = "";
+  submission = session.submission ? { ...session.submission, excluded: new Set(session.submission.excluded || []) } : null;
+  render();
+  renderSubmission();
+  checkSeen();
+  $("sessions-dialog").close();
+  $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function showSessions() {
+  const dialog = $("sessions-dialog");
+  const close = el("button", { type: "button", class: "secondary small", style: "margin: 0" }, "Close");
+  close.addEventListener("click", () => dialog.close());
+  const head = el("div", { class: "sheet-head" }, el("div", {}, el("h2", { id: "sessions-title" }, "Saved sessions"),
+    el("div", { class: "reason" }, `Kept in a file on this computer (${workspaceInfo.location}). Resume files are not kept: only the details shown on screen, your call notes and your submissions.`)), close);
+  const body = el("div", { class: "sheet-body" }, el("p", { class: "hint" }, "Loading…"));
+  dialog.replaceChildren(head, body);
+  if (!dialog.open) dialog.showModal();
+  let sessions;
+  try { sessions = await workspaceCall("GET", "/sessions"); } catch (error) { body.replaceChildren(el("p", { class: "error" }, error.message)); return; }
+  if (!sessions.length) {
+    body.replaceChildren(el("p", {}, el("strong", {}, "Nothing saved yet.")),
+      el("p", { class: "reason" }, "Evaluate resumes with “Hiring experienced candidates” ticked, then press “Save session” above the results. Each job you are working on can be its own session."));
+    return;
+  }
+  const when = (iso) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const rows = sessions.map((session) => {
+    const open = el("button", { type: "button", class: "linkish" }, session.name);
+    open.addEventListener("click", async () => {
+      try { await openSession(session.id); } catch (error) { body.prepend(el("p", { class: "error" }, error.message)); }
+    });
+    const remove = el("button", { type: "button", class: "icon-button", "aria-label": `Delete ${session.name}` }, "Delete");
+    remove.addEventListener("click", async () => {
+      if (!window.confirm(`Delete “${session.name}” and everything recorded in it? This can't be undone.`)) return;
+      try {
+        await workspaceCall("DELETE", `/sessions/${session.id}`);
+        if (currentSession && currentSession.id === session.id) { currentSession = null; renderSessionBar(); }
+        showSessions();
+      } catch (error) { body.prepend(el("p", { class: "error" }, error.message)); }
+    });
+    return el("tr", {}, el("td", {}, open, currentSession && currentSession.id === session.id ? el("span", { class: "hint" }, " (open now)") : null),
+      el("td", {}, SESSION_STATUSES[session.status]), el("td", {}, String(session.candidates)),
+      el("td", {}, session.with_call_notes ? String(session.with_call_notes) : "–"),
+      el("td", {}, session.has_submission ? "Drafted" : "–"), el("td", {}, when(session.updated_at)), el("td", {}, remove));
+  });
+  body.replaceChildren(el("div", { class: "table-wrap" }, el("table", { class: "sessions-table" },
+    el("thead", {}, el("tr", {}, ...["Session", "Status", "Candidates", "Call notes", "Submission", "Last changed", ""].map((text) => el("th", {}, text)))),
+    el("tbody", {}, ...rows))));
+}
+
+$("sessions-open").addEventListener("click", showSessions);
+
+(async function startWorkspace() {
+  try {
+    workspaceInfo = await (await fetch("/api/workspace")).json();
+  } catch { workspaceInfo = { enabled: false, note: "" }; }
+  $("sessions-open").hidden = !workspaceInfo.enabled;
+  if (lastResult) renderSessionBar();
+}());
