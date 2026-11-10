@@ -190,18 +190,25 @@ def skills_fit(text: str, requirements: Requirements, experience: RequirementChe
     required_missing = [term.name for term in requirements.required_skills if term.name not in required_matched]
     preferred_matched = [term.name for term in requirements.preferred_skills if term.found_in(text)]
     preferred_missing = [term.name for term in requirements.preferred_skills if term.name not in preferred_matched]
+    return skills_from_lists(required_matched, required_missing, preferred_matched, preferred_missing, experience)
 
+
+def skills_from_lists(required_matched: list[str], required_missing: list[str], preferred_matched: list[str],
+                      preferred_missing: list[str], experience: RequirementCheck | None) -> SkillsFit:
+    """Score and describe skills fit from which skills were found. Also used when only the facts change."""
+    required_count = len(required_matched) + len(required_missing)
+    preferred_count = len(preferred_matched) + len(preferred_missing)
     parts: list[tuple[float, float]] = []
-    if requirements.required_skills:
-        parts.append((REQUIRED_WEIGHT, len(required_matched) / len(requirements.required_skills)))
-    if requirements.preferred_skills:
-        parts.append((PREFERRED_WEIGHT, len(preferred_matched) / len(requirements.preferred_skills)))
+    if required_count:
+        parts.append((REQUIRED_WEIGHT, len(required_matched) / required_count))
+    if preferred_count:
+        parts.append((PREFERRED_WEIGHT, len(preferred_matched) / preferred_count))
     score = round(100 * sum(weight * share for weight, share in parts) / sum(weight for weight, _ in parts)) if parts else None
 
-    if requirements.required_skills:
+    if required_count:
         if not required_missing:
             level = "strong"
-        elif len(required_missing) == 1 and len(requirements.required_skills) >= 2:
+        elif len(required_missing) == 1 and required_count >= 2:
             level = "partial"
         else:
             level = "weak"
@@ -211,11 +218,11 @@ def skills_fit(text: str, requirements: Requirements, experience: RequirementChe
         level = "strong" if score >= STRONG_SCORE else "partial" if score >= PARTIAL_SCORE else "weak"
 
     sentences = []
-    if requirements.required_skills:
+    if required_count:
         text_missing = f"; missing {', '.join(required_missing)}" if required_missing else ""
-        sentences.append(f"Has {len(required_matched)} of {len(requirements.required_skills)} required skills{text_missing}.")
-    if requirements.preferred_skills:
-        sentences.append(f"Has {len(preferred_matched)} of {len(requirements.preferred_skills)} preferred skills.")
+        sentences.append(f"Has {len(required_matched)} of {required_count} required skills{text_missing}.")
+    if preferred_count:
+        sentences.append(f"Has {len(preferred_matched)} of {preferred_count} preferred skills.")
     if score is None:
         sentences.append("No skills were set, so skills fit wasn't scored.")
     elif len(parts) == 2:
@@ -291,18 +298,35 @@ def _step(key: str, reason: str) -> NextStep:
     return NextStep(key=key, label=STEP_LABELS[key], reason=reason)
 
 
-def evaluate(text: str, facts: dict[str, Found], requirements: Requirements) -> Evaluation:
-    experience = check_experience(facts.get("total_experience"), requirements.min_experience_years,
-                                  requirements.max_experience_years)
+def _limit_checks(facts: dict[str, Found], limits) -> tuple[RequirementCheck | None, list[RequirementCheck]]:
+    """The experience check and the client-limit checks. `limits` is anything with the limit attributes."""
+    experience = check_experience(facts.get("total_experience"), limits.min_experience_years, limits.max_experience_years)
     checks = [check for check in (
-        check_notice(facts.get("notice_period"), requirements.max_notice_days),
-        check_ctc(facts.get("expected_ctc"), facts.get("current_ctc"), requirements.max_ctc_lpa),
-        check_location(facts.get("current_location"), facts.get("preferred_location"), requirements.locations),
+        check_notice(facts.get("notice_period"), limits.max_notice_days),
+        check_ctc(facts.get("expected_ctc"), facts.get("current_ctc"), limits.max_ctc_lpa),
+        check_location(facts.get("current_location"), facts.get("preferred_location"), limits.locations),
     ) if check is not None]
-    skills = skills_fit(text, requirements, experience)
+    return experience, checks
+
+
+def _assemble(skills: SkillsFit, checks: list[RequirementCheck], facts: dict[str, Found]) -> Evaluation:
     constraints = constraints_fit(checks)
     return Evaluation(skills=skills, constraints=constraints, completeness=completeness(facts),
                       next_step=next_step(skills, constraints))
+
+
+def evaluate(text: str, facts: dict[str, Found], requirements: Requirements) -> Evaluation:
+    experience, checks = _limit_checks(facts, requirements)
+    return _assemble(skills_fit(text, requirements, experience), checks, facts)
+
+
+def re_evaluate(previous: Evaluation, facts: dict[str, Found], limits) -> Evaluation:
+    """Evaluate again after the facts changed (for example, after a call). Skills found don't change."""
+    experience, checks = _limit_checks(facts, limits)
+    before = previous.skills
+    skills = skills_from_lists(before.required_matched, before.required_missing, before.preferred_matched,
+                               before.preferred_missing, experience)
+    return _assemble(skills, checks, facts)
 
 
 def review_order(evaluation: Evaluation, file_name: str) -> tuple:

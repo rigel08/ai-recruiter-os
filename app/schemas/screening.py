@@ -15,6 +15,7 @@ class Fact(BaseModel):
     note: str | None = None
     confirm: bool = Field(default=False, description="The resume is unclear here; check on the call")
     low: float | None = Field(default=None, description="Lower end when the resume gives a range; `value` is the upper end")
+    tags: list[str] = Field(default_factory=list, description="negotiable, serving or per_skill, where the resume says so")
 
 
 class CandidateFacts(BaseModel):
@@ -95,6 +96,19 @@ class AppliedRequirements(BaseModel):
     locations: list[str]
 
 
+class ResolvedFact(BaseModel):
+    """The value in use for one field, and where it came from. The resume's own value is kept beside it."""
+
+    source: Literal["resume", "recruiter_confirmed", "recruiter_entered", "unknown"]
+    value: float | str | None = None
+    unit: str | None = None
+    display: str | None = Field(default=None, description="The value in use, in words; null when unknown")
+    resume_display: str | None = Field(default=None, description="What the resume says, whatever is in use")
+    state: Literal["answered", "confirmed", "pending", "not_applicable"] | None = Field(
+        default=None, description="What the recruiter recorded for this field, if anything")
+    note: str = ""
+
+
 class CandidateResult(BaseModel):
     file_name: str
     status: Literal["ranked", "needs_review"]
@@ -113,6 +127,9 @@ class CandidateResult(BaseModel):
     facts: CandidateFacts = Field(default_factory=CandidateFacts)
     to_ask: list[str] = Field(default_factory=list, description="Tracker fields the recruiter still has to ask about")
     evaluation: Evaluation | None = Field(default=None, description="Present only for experienced hiring")
+    resolved: dict[str, ResolvedFact] | None = Field(
+        default=None, description="Experienced hiring only: each field's value in use and its source. `facts` is never changed")
+    remarks: str = Field(default="", description="The recruiter's notes, once recorded")
 
 
 class ScreeningResult(BaseModel):

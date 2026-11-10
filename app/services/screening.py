@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from app.schemas.screening import AppliedRequirements, CandidateFacts, CandidateResult, Fact, ScreeningResult
 from app.services.academics import find_cgpa
 from app.services.facts import FIELD_LABELS, FIELD_UNITS, extract_facts, questions_to_ask
+from app.services.clarify import resolve, to_found
 from app.services.evaluation import STEP_ORDER, evaluate, review_order
 from app.services.parsing import UnreadableDocument, extract_text
 from app.services.requirements import Requirements
@@ -90,7 +91,7 @@ def screen(
                 interview_questions=suggestion.interview_questions,
                 facts=CandidateFacts(**{
                     field: Fact(value=fact.value, unit=FIELD_UNITS.get(field), display=fact.display,
-                                quote=fact.quote, note=fact.note, confirm=fact.confirm, low=fact.low)
+                                quote=fact.quote, note=fact.note, confirm=fact.confirm, low=fact.low, tags=list(fact.tags))
                     for field, fact in found.items()
                 }),
                 to_ask=questions_to_ask(found),
@@ -104,6 +105,8 @@ def screen(
         key=lambda c: (DECISION_ORDER[c.decision], -c.score, -len(c.must_haves_matched), c.file_name.lower())
     )
     if requirements is not None:
+        for candidate in ranked:
+            _, candidate.resolved = resolve(to_found(candidate.facts), {})
         ranked.sort(key=lambda c: review_order(c.evaluation, c.file_name))
     for position, candidate in enumerate(ranked, start=1):
         candidate.rank = position

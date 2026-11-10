@@ -137,7 +137,7 @@ def test_experienced_resume_facts_come_back_with_quotes():
     body = response.json()
     meena = next(c for c in body["candidates"] if c["name"] == "Meena Joshi")
     assert meena["facts"]["notice_period"] == {
-        "value": 30.0, "unit": "days", "display": "30 days", "note": None, "confirm": False, "low": None,
+        "value": 30.0, "unit": "days", "display": "30 days", "note": None, "confirm": False, "low": None, "tags": [],
         "quote": "Current CTC: 7.2 LPA | Expected CTC: Negotiable | Notice Period: 30 days",
     }
     assert meena["facts"]["total_experience"]["value"] == 4.5
