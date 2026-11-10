@@ -8,7 +8,8 @@ Written 10 November 2026. Effort figures are my estimates for part-time work, no
 |---|---|---|---|---|---|
 | M0 | Baseline and plan | Git repository, `v1-baseline` tag, `v2` branch, these documents | Done | None | None |
 | **M1** | **Candidate facts with evidence** | Phone, total experience, notice period, current and expected CTC, location; a quote for each; an "ask on call" list; coverage counts; an experienced-hire sample; a labelled test set | **Done on `v2`** | Low: additive, 1.0 output unchanged | None |
-| M2 | Limits and the call sheet | Per-requirement limits (maximum notice, CTC cap, locations, minimum years); pass, near-miss or ask; a printable call sheet; type answers back in | 2 to 3 days | Low | None |
+| **M2** | **Requirements and evaluation** | Requirements read from the job description for the recruiter to confirm or edit; each candidate checked against them (meets, near match, does not meet, unknown, check by hand); skills, client limits and information shown separately; side-by-side comparison; CSV built on the server | **Done on `v2`**. The call sheet moved to M2b | Low | None |
+| M2b | Call sheet and answers | A printable call sheet per candidate; type the answers back in and re-evaluate | 1 to 2 days | Low | None |
 | M3 | Local pilot kit | A pilot log (counts and timings only); a one-command local start; a one-page data agreement template; `.doc` flagged with a how-to-convert hint | 1 to 2 days | Low | First discovery call booked |
 | M4 | The client's tracker | Column templates per client; XLSX export; duplicates within a batch; SAP and Oracle skill packs | 3 to 4 days | Low | One agency shares a blank tracker |
 | M5 | Message-aware intake | Read a WhatsApp chat export or pasted messages; pair each resume with what the candidate typed | 3 to 5 days | Medium: export formats vary | Two agencies say a quarter or more of resumes arrive outside Naukri |
@@ -27,9 +28,16 @@ Written 10 November 2026. Effort figures are my estimates for part-time work, no
 - **Coverage will often be low.** Many resumes don't state notice period or CTC at all. That's what the "ask on call" list is for.
 - **Facts don't change the ranking yet.** That's M2.
 
+## What M2 does not claim
+
+- **The job-description reader is rule-based and untested on real job descriptions.** It knows the 93 skills in the vocabulary and the wordings in its tests. Anything it misses, the recruiter types in.
+- **Location matching uses a hand-kept list of about 40 Indian cities.** A place that isn't on it is sent for a manual check, not guessed.
+- **The near-match margins are my choices,** not measured: 15 days on notice, 10% on CTC, 6 months on experience.
+- **Answers from the call can't be typed back in yet.** That's M2b.
+
 ## Order of work if nothing changes
 
-1. M2, because limits and the call sheet are what make M1 useful in a demo.
+1. M2b, so a recruiter can finish the job after the call: enter what the candidate said and see the evaluation update.
 2. M3, once a call is booked, so a pilot can run on the laptop the same week.
 3. Stop and read the call notes before starting M4.
 

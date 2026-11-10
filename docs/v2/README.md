@@ -16,6 +16,8 @@ Stop competing on ranking. Naukri, Zoho, Manatal and Recruit CRM already ship AI
 | [innovation-strategy.md](innovation-strategy.md) | Which assumptions are wrong, and the ideas worth building beyond the original list |
 | [architecture.md](architecture.md) | How 2.0 is structured, and the rules every new part follows |
 | [roadmap.md](roadmap.md) | Milestones in order, each with a gate that must be met before the next is built |
+| [m1-audit.md](m1-audit.md) | What the audit of M1 found and fixed |
+| [session-progress-report.md](session-progress-report.md) | The latest snapshot: what works, what doesn't, how to resume |
 
 ## Where it stands
 
@@ -23,4 +25,5 @@ Stop competing on ranking. Naukri, Zoho, Manatal and Recruit CRM already ship AI
 |---|---|
 | M0. Baseline, branch, plan | Done |
 | M1. Candidate facts with evidence | Done on `v2` (see [roadmap.md](roadmap.md)) |
-| M2 onwards | Not started. M4 onwards is gated on evidence from discovery calls |
+| M2. Requirements and constraint-aware evaluation | Done on `v2`, except typing call answers back in (M2b) |
+| M3 onwards | Not started. M4 onwards is gated on evidence from discovery calls |

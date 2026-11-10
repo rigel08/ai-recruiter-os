@@ -20,15 +20,24 @@ Built for campus placement cells and small recruitment teams that still shortlis
 
 **Privacy:** resumes exist only for the length of one request. Nothing is stored.
 
-## New on the `v2` branch: facts with evidence
+## New on the `v2` branch: experienced hiring
 
-Tick **Hiring experienced candidates** and each resume also shows its phone number, total experience, notice period, current and expected CTC, and location.
+Tick **Hiring experienced candidates** and the page changes from campus ranking to checking candidates against a client's requirements.
 
-- **Every value shows the line it came from.** Nothing is inferred.
-- **Blanks aren't guessed.** Anything missing or unclear is listed under "Ask on the call".
-- **Indian formats are understood:** LPA, lakhs and crores, "12,00,000", "45k per month", "5.10 years" (5 years 10 months), "NP", "CCTC", "ECTC" and "immediate joiner".
-- **Unclear cases are flagged,** such as two different notice periods on one resume.
-- **With the switch off, nothing changes:** the page, the CSV and the 1.0 API fields are as before.
+1. **Paste the job description and press "Fill from the job description".** Required and preferred skills, the experience range, the longest notice period, the CTC budget and the location go into editable boxes, each with the sentence it came from. Anything only hinted at stays out of the box until you choose it.
+2. **Edit the boxes.** Only what's in them is checked. An empty box means no limit.
+3. **Upload resumes.** Each candidate gets three separate views, never one combined score:
+   - **Skills and experience:** required and preferred skills found, and whether the stated experience is in range. Wording overlap with the job description isn't counted.
+   - **Client limits:** notice period, CTC and location, each marked Meets, Near match, Does not meet, Unknown or Check by hand, with the reason.
+   - **Information on the resume:** phone, experience, notice period, CTC and location, each with the exact line it came from, and what to ask on the call.
+4. **Read the "Next step"** for each candidate: Looks ready, Clarify first, Check by hand, Conflicts with a limit or Low skills fit. Nobody is removed or rejected.
+5. **Tick two to four candidates** to compare them side by side, and download the CSV.
+
+Things it deliberately doesn't do:
+- **Guess.** A missing notice period is "Unknown", not a failure. "Serving notice" never becomes a number of days.
+- **Read protected details** such as age, gender or marital status.
+
+With the switch off, the page, the CSV and the API response are the 1.0 ones.
 
 Check the extractor against its labelled cases:
 
@@ -36,7 +45,7 @@ Check the extractor against its labelled cases:
 .venv/bin/python -m evals.facts
 ```
 
-Those cases are synthetic, so they show the rules behave as intended. They don't measure accuracy on real resumes. The plan for 2.0 is in [docs/v2/](docs/v2/README.md).
+Those cases are synthetic, so they show the rules behave as intended. They don't measure accuracy on real resumes. The plan and current status are in [docs/v2/](docs/v2/README.md).
 
 ## Run it locally
 
@@ -84,7 +93,15 @@ Then open http://127.0.0.1:8770.
 | `min_cgpa` | No | 0–10. Blank means no cut-off |
 | `resumes` | Yes | One or more files, up to 200 |
 
-`GET /api/samples` returns the demo job and resumes; `?kind=experienced` returns the experienced-hire set. `GET /health` returns `{"status": "ok"}`.
+`GET /api/samples` returns the demo job and resumes; `?kind=experienced` returns the experienced-hire set.
+
+Added on `v2`:
+
+| Endpoint | What it does |
+|---|---|
+| `POST /api/requirements` | JSON `{"job_description": "..."}` in; suggested requirements out, each with its sentence and whether it's explicit or only suggested |
+| `POST /api/screenings` with `hiring_mode=experienced` | Also takes `preferred_skills`, `min_experience_years`, `max_experience_years`, `max_notice_days`, `max_ctc_lpa` and `locations`. Each candidate gains an `evaluation` |
+| `POST /api/exports/csv` | A screening result in; the CSV file out | `GET /health` returns `{"status": "ok"}`.
 
 ## Layout
 
