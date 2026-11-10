@@ -4,6 +4,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import exports, requirements, samples, screenings
 from app.services.screening import shutdown_pool
@@ -31,6 +32,18 @@ def index() -> FileResponse:
     # "no-cache" means "check for a newer version first", so people get
     # updates straight away instead of a stale copy from their browser.
     return FileResponse(STATIC_DIR / "index.html", headers={"Cache-Control": "no-cache"})
+
+
+class FreshStaticFiles(StaticFiles):
+    """Static files that browsers re-check before using, so an update is never hidden by a stale script."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
+app.mount("/static", FreshStaticFiles(directory=STATIC_DIR), name="static")
 
 
 @app.api_route("/health", methods=["GET", "HEAD"])
