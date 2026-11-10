@@ -33,11 +33,17 @@ Tick **Hiring experienced candidates** and the page changes from campus ranking 
 4. **Read the "Next step"** for each candidate: Looks ready, Clarify first, Check by hand, Conflicts with a limit or Low skills fit. Nobody is removed or rejected.
 5. **Tick two to four candidates** to compare them side by side, and download the CSV.
 
+6. **Record the call.** "Record call answers" on a candidate gives you a message to copy and send yourself, a box to paste their reply into (it fills the answers for you to check), and one row per detail showing what the resume says beside what they said. "Review changes" shows the before and after; nothing applies until you accept. Every value is labelled Resume, Confirmed on call or From recruiter, and the resume's own line is never changed.
+7. **Prepare the client submission.** Tick candidates and press "Prepare client submission". You get a drafted profile for each, checks to read before sending (conflicts with the client's limits, unknowns, the same person twice), and an editor for the summary, your remarks, each detail and their order. Phone and email are left out unless you tick the box. Print or save as PDF, copy as text, or download Excel or CSV. Nothing is sent for you.
+8. **Save the session.** "Save session" keeps the evaluation, your call notes and the submission in a file on your computer, so each job you're working on can be reopened from "Saved sessions". Resume files themselves aren't kept. Someone who is already in another saved session is flagged as "Seen before".
+
 Things it deliberately doesn't do:
 - **Guess.** A missing notice period is "Unknown", not a failure. "Serving notice" never becomes a number of days.
 - **Read protected details** such as age, gender or marital status.
 
 With the switch off, the page, the CSV and the API response are the 1.0 ones.
+
+**Where saved sessions live.** One file, `data/workspace.db`, readable only by your user account and ignored by git. It holds candidates' details and your notes, so treat it like the resumes themselves. The part of the app that reads it answers only your own computer, and it is switched off in the Docker image.
 
 Check the extractor against its labelled cases:
 
@@ -101,7 +107,13 @@ Added on `v2`:
 |---|---|
 | `POST /api/requirements` | JSON `{"job_description": "..."}` in; suggested requirements out, each with its sentence and whether it's explicit or only suggested |
 | `POST /api/screenings` with `hiring_mode=experienced` | Also takes `preferred_skills`, `min_experience_years`, `max_experience_years`, `max_notice_days`, `max_ctc_lpa` and `locations`. Each candidate gains an `evaluation` |
-| `POST /api/exports/csv` | A screening result in; the CSV file out | `GET /health` returns `{"status": "ok"}`.
+| `POST /api/exports/csv` | A screening result in; the CSV file out |
+| `POST /api/clarifications/apply` | A result and the recruiter's call answers in; everyone evaluated again, with each value's source in `resolved` |
+| `POST /api/clarifications/read-reply` | A candidate's pasted message in; suggested answers out, each with the words it came from |
+| `POST /api/submissions/draft` | A result, call answers and chosen candidates in; drafted profiles and pre-submission checks out |
+| `POST /api/submissions/export?format=csv\|xlsx\|text` | The finalised submission in; the file out. Contact details are dropped unless `include_contact` is true |
+| `/api/workspace/sessions` (GET, POST, PATCH, DELETE) | Saved sessions. Answers only this computer |
+| `POST /api/workspace/seen` | Which candidates in a result are also in another saved session | `GET /health` returns `{"status": "ok"}`.
 
 ## Layout
 

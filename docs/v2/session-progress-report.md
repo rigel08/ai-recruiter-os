@@ -1,212 +1,199 @@
 # Session progress report
 
-Snapshot taken Tuesday 10 November 2026, after the M2 session. It replaces the earlier snapshot from the same day (in git history at `6acdd9f`).
+Snapshot taken Tuesday 10 November 2026, after the M2b, M3 and saved-sessions sprint. Earlier snapshots are in git history.
 
 ## The short version
 
-- **M2 is built and working:** requirements are read from the job description for the recruiter to edit, and every candidate is checked against them on three separate dimensions.
-- **273 tests pass, none fail** (137 before this session).
-- **Checked in the browser** with the switch off and on, including real PDF and DOCX uploads, unreadable files, edited requirements, comparison, CSV and phone width.
-- **Still true:** nothing has been tried on real resumes or real job descriptions. All data is synthetic.
-- **Not built:** typing call answers back in, client tracker templates, PDF export, vacancy management, a product dashboard, storage of any kind, hosting.
+- **A recruiter can now take one job from job description to client submission in the page:** confirm requirements, upload resumes, see the evaluation, record call answers, re-evaluate, compare, prepare and export a submission, and save the session.
+- **348 tests pass, none fail** (273 before this sprint).
+- **Checked in the browser** at desktop and phone width with no console errors.
+- **Still true:** every resume and job description used so far is synthetic. Nothing here is a claim about accuracy on real documents.
 
-## 1. What existed before this session
+## 1. What existed before this sprint
 
-Branch `v2` at `00520d2`, 137 tests passing:
-- The 1.0 screening app (skills and CGPA ranking for campus hiring).
-- M1: seven facts extracted from each resume with the exact source line, and an "ask on the call" list.
-- The local outreach dashboard and the market research.
+Branch `v2` at `fb4d05e`, 273 tests passing: M1 (facts with evidence) and M2 (requirements read from the job description, three-part evaluation, comparison, server-built CSV). The tool could say "Unknown: ask on the call" but had nowhere to put the answer, produced no client-facing output beyond a CSV, and forgot everything on reload.
 
-Its known weakness: facts didn't affect evaluation at all. A resume with no facts ranked second, and a candidate who broke every client limit stayed shortlisted.
+## 2. What was implemented
 
-## 2. What this session added
+**M2b. Call answers and re-evaluation**
 
-**M1 fixes (commit `8eee1c3`)**
+- **Four states per detail:** answered (the recruiter types a value), confirmed (the candidate confirmed the resume's value), asked and waiting, not applicable.
+- **Sources are kept apart.** Each value in use is labelled Resume, Confirmed on call or From recruiter. The resume's own value and line are never changed; when a recruiter's value replaces it, the page still shows "Resume says: …".
+- **Review before accepting.** "Review changes" shows the before and after for each detail, each check and the next step. Nothing applies until "Accept and re-evaluate". Answers can be edited or cleared later.
+- **Re-evaluation** recomputes experience, notice, CTC and location checks, the next step and the order.
+- **A message to copy** listing what to ask, to send by hand.
 
-| Issue | Fix |
+**M3. Client submissions**
+
+- **Profiles drafted from known details only:** designation, employer, total and relevant experience, skills matching the role, current and preferred location, current and expected CTC, notice period, availability, education. Unknown details are left out, never filled.
+- **New extraction** for designation, employer, education and relevant experience, each with its resume line; left empty when unclear.
+- **Strengths** list only what the evaluation found met.
+- **Editing:** summary, remarks, any detail's value, which details appear and in what order, candidate order, remove a candidate.
+- **Live preview** of what the client sees, with details from a call marked.
+- **Exports:** print or save as PDF, copy as text, Excel, CSV. Several candidates in one document.
+- **Privacy default:** phone and email are left out unless the recruiter ticks the box, and the server drops them again unless told to include them.
+
+**M3b. Saved sessions**
+
+- **Named sessions with a status** (open, submitted, on hold, closed) in one SQLite file. Call notes and the submission save as you go, and a session reopens exactly as it was.
+- **What is stored:** the job description, requirements, the evaluation as shown (facts and their lines), call notes and the submission. **Not stored:** resume files or their full text.
+- **Local only:** the API answers only the loopback address with a local Host header, changes need a custom header, the file is readable only by its owner, and the feature is off in the Docker image.
+
+**Improvements chosen after the core was working**
+
+| Built | Why |
 |---|---|
-| A bare "Location:" lower down was missed | Accepted when a neighbouring line is another personal detail (CTC, notice, phone). A past job's location is still ignored |
-| Per-skill experience figures gave a misleading total | "4 years in Node.js, 2 years in Java" now returns no total and goes on the ask list. A stated total still wins. A labelled total no longer reads across a full stop (a bug found on the way) |
-| Serving notice | Confirmed it never becomes a number of days; now tagged so the evaluation says "check by hand" |
-| Two-column PDFs came out interleaved | Reproduced with a test PDF (the notice period was lost and the name read as "Divya Rao Summary"). Pages saved row by row are now read column by column, with guards for label/value rows and right-aligned dates |
-| Unreadable files | `.doc` and photo uploads now say what to do. Damaged, scanned and oversized files already had clear messages |
-| Ranges | Notice and CTC ranges keep both ends, so "18–24 LPA" against a 20 LPA budget is a near match, not a failure |
+| **Paste the reply.** Paste what the candidate sent ("NP 30 days, cctc 14, ectc 18, loc hyd") and the answer boxes are filled for checking, each with the words it was read from | Candidates answer in shorthand on WhatsApp. Retyping five values per candidate is the most repeated manual step left |
+| **Pre-submission checks.** Before export, each profile lists conflicts with the client's limits, unknowns the client asked about, low skills fit, and which details came from a call | A submission that breaks the client's stated limit, or sends the same person twice, costs the agency credibility. It never blocks: the recruiter decides |
+| **Duplicates and "seen before".** Resumes sharing a phone number or email are flagged in the batch and in a submission; people already in another saved session are named with that session's status | Calling or submitting the same person twice wastes time and can cause fee disputes |
 
-**M2 backend (commit `d622062`)**
+## 3. What remains incomplete
 
-- **Job-description reader** (`POST /api/requirements`): required skills, preferred skills, minimum and maximum experience, longest notice period, CTC budget, locations and other stated conditions. Each value carries its sentence and is marked `explicit` or `suggested`. Vague wording ("around", "preferred", only mentioned) is never treated as a hard requirement.
-- **Evaluation** (`hiring_mode=experienced` on `POST /api/screenings`): each candidate gets
-  - **skills and experience fit:** 70% required skills, 30% preferred skills, no wording-overlap part; plus an experience check
-  - **client limits:** notice, CTC and location, each Meets, Near match, Does not meet, Unknown or Check by hand, with a reason that states the numbers
-  - **information:** how many of six tracker fields the resume states
-  - **next step:** Looks ready, Clarify first, Check by hand, Conflicts with a limit or Low skills fit. It reports the most serious finding and never hides a conflict
-- **Order** follows the next step. Nobody is removed or rejected.
-- **CSV on the server** (`POST /api/exports/csv`), so it's covered by tests.
-- **City list** of about 40 Indian cities with alternative names and some localities.
-- **Two more sample resumes:** a strong candidate who breaks every limit, and a low skills fit.
+- **Client-specific tracker templates.** The Excel and CSV use this tool's columns, in the order chosen for that session. Nothing is saved per client.
+- **Re-evaluating after changing skills.** Call answers re-evaluate without the resumes. Changing required skills needs the resumes uploaded again, because resume text isn't kept.
+- **Relevant experience, designation, employer and education can't be recorded in call notes.** They can be typed in the submission editor only.
+- **No reminders** for answers marked "asked, waiting".
+- **No real PDF generation.** PDF comes from the browser's print dialog.
+- **Not built at all:** accounts, sharing between recruiters, hosting, WhatsApp intake of whole chats, a language-model layer, candidate search across sessions, a pipeline dashboard.
 
-**M2 frontend (commit `1a4bfe3`)**
+## 4. Files
 
-- A "Client requirements" block with "Fill from the job description". Explicit values go into editable boxes with their source sentence. Suggested values stay out until the recruiter clicks "Use it".
-- Results show Next step, Skills and experience, Client limits and Information on the resume as separate columns. Tabs filter by next step.
-- Tick two to four candidates for a side-by-side table.
+Since the `m3-start` tag: 34 files changed, about 3,500 lines added.
 
-## 3. Files
-
-Since the `m2-start` tag: **24 files changed, 2,521 lines added, 147 removed. None deleted.** Documentation changes are on top of that.
-
-**Created (12)**
-- Code: `app/services/requirements.py`, `evaluation.py`, `locations.py`, `export.py`; `app/api/routes/requirements.py`, `exports.py`; `app/schemas/requirements.py`
-- Samples: `app/samples/experienced/resumes/rohit_verma.txt`, `neha_kapoor.txt`
-- Tests: `tests/test_requirements.py`, `test_evaluation.py`, `test_export.py`
+**Created (18)**
+- Services: `app/services/clarify.py`, `replies.py`, `profile.py`, `submission.py`, `duplicates.py`, `xlsx.py`, `workspace.py`
+- Routes: `app/api/routes/clarifications.py`, `submissions.py`, `workspace.py`
+- Schemas: `app/schemas/clarifications.py`, `submissions.py`, `workspace.py`
+- Page: `app/static/app.js` (the old inline script, moved), `app/static/workspace.js`
+- Tests: `tests/test_clarify.py`, `test_submission.py`, `test_workspace.py`
 
 **Modified**
-- `app/services/facts.py`, `parsing.py`, `screening.py`
-- `app/api/routes/screenings.py`, `app/main.py`, `app/schemas/screening.py`
+- `app/main.py`, `app/schemas/screening.py`, `app/services/screening.py`, `evaluation.py`, `export.py`
 - `app/static/index.html`
-- `tests/test_api.py`, `test_facts.py`, `test_parsing.py`, `helpers.py`
-- `evals/facts/gold.json`
+- Five sample resumes (an education line each)
+- `tests/test_api.py`, `test_export.py`
+- `Dockerfile`, `.gitignore`, `.dockerignore`
 - `README.md`, `docs/v2/README.md`, `docs/v2/roadmap.md`, this file
 
-**Untouched:** `app/services/scoring.py`, `suggestions.py`, `skills.py`, `academics.py` (the 1.0 ranking), and everything under `outreach/`.
+**Untouched:** the 1.0 ranking (`scoring.py`, `suggestions.py`, `skills.py`, `academics.py`) and everything under `outreach/`.
 
-**Persistence:** still none in the screening app. No database was added.
+**Evaluation logic:** not changed. It was split so it can rerun from facts without the resume text; the M2 tests pass unmodified.
 
-## 4. Tests
+**New dependency:** none. Excel files are written with the standard library.
+
+## 5. Tests
 
 | Measure | Result |
 |---|---|
-| Passing | **273** |
+| Passing | **348** |
 | Failing | **0** |
-| Before this session | 137 |
-| New this session | 136 |
-| Labelled extraction set | 81 synthetic cases: 68 expected values found, 0 missed, 0 wrong |
+| Before this sprint | 273 |
+| New | 75 |
 
 | File | Tests | Covers |
 |---|---:|---|
-| `test_evaluation.py` (new) | 60 | Notice, CTC, location and experience statuses; ranges; conflicts; serving notice; the three dimensions; next step; order |
-| `test_requirements.py` (new) | 38 | Skill, experience, notice, pay and location wording; explicit against suggested; ambiguous and silent job descriptions; the API |
-| `test_export.py` (new) | 7 | Campus CSV matches 1.0 byte for byte; experienced CSV; formula guard; endpoint errors |
-| `test_api.py` | 35 (16 new) | Experienced sample end to end; recruiter edits; validation; campus result pinned to the `v1-baseline` tag; unreadable files |
-| `test_facts.py` | 43 (9 new) | Regression tests for each M1 fix |
-| `test_parsing.py` | 14 (6 new) | Two-column PDFs; `.doc` and photo messages |
-| Others | 76 | Unchanged 1.0 and outreach tests |
+| `test_clarify.py` (new) | 33 | Sources, entered beside resume, confirmed, waiting, not applicable, clearing, new conflicts, refusals with reasons, reading replies |
+| `test_submission.py` (new) | 24 | Role, employer and education reading; drafts from known values only; strengths; pre-submission checks; duplicates; contact left out; edits and order; CSV; Excel structure; bad input |
+| `test_workspace.py` (new) | 17 | Save and restore exactly; updates; delete; no resume text stored; seen before; refusal of other machines, wrong Host and missing header; off in Docker |
+| `test_export.py` | 8 (1 new) | CSV shows the value in use, its source and remarks, and still quotes the resume |
+| Everything else | 266 | Unchanged and passing, including the pin against the `v1-baseline` result |
 
-**V1 regression:** a test runs the campus sample and compares names, decisions and scores with the output of the code at the `v1-baseline` tag. They match.
+## 6. Browser verification
 
-## 5. Browser checks done
-
-All with synthetic data, in the app's built-in browser:
+Synthetic data, in the app's built-in browser, against a throwaway session database.
 
 | Check | Result |
 |---|---|
-| Switch off, campus sample | Same 7 columns, tabs and counts as 1.0. No requirements block |
-| Switch on, experienced sample | Requirements filled from the job description with source sentences; 8 candidates in 5 next-step groups |
-| Editing requirements | Changed notice to 30, CTC to 20, locations to "Hyderabad, Pune"; results followed the edited values |
-| Real file uploads through the form | A PDF, a DOCX and a two-column PDF were read correctly |
-| Unreadable files | `.doc`, damaged PDF, empty PDF and `.jpg` each listed under "Need a manual look" with a reason |
-| Evidence | "Where each value came from" shows the exact resume line per fact |
-| Missing information | Shown as Unknown with "ask on the call", not as a failure |
-| Comparison | One ticked: prompt for another. Three ticked: side-by-side table |
-| CSV | Downloaded from the server: byte-order mark, 27 columns, one row per file including unreadable ones |
-| Validation | Minimum above maximum experience shows a plain message; out-of-range numbers are blocked by the browser |
-| Phone width (375 px) | No sideways page scroll. The results table scrolls inside its own box |
-| Console | No errors, apart from the expected 422 from the deliberate validation test |
+| Switch off (1.0) | Same 7 columns, tabs, counts and 13-column CSV. No requirements, selection or session bars |
+| Call notes | Opened for a candidate with nothing on the resume; pasted a reply; 5 boxes filled; reviewed; "Back to editing" kept the draft; accepted. The candidate moved from "Clarify first" to "Looks ready" and up the order. Resume facts were still empty |
+| Source labels | "Resume" and "From recruiter" shown beside values; notes shown under the candidate |
+| Submission | Three candidates drafted. Contact switch off by default and reversible. Excluded a detail, moved one up, edited a summary, remarks and one candidate's detail: the preview followed each change and marked the edited detail |
+| Exports | Text, Excel and CSV fetched from the page. Excel opened in macOS Quick Look |
+| Print layout | Checked by applying the print rules on screen: only the document remains. **Not printed to an actual PDF** |
+| Sessions | Saved, renamed status, reloaded the page, reopened from the list: results, call answers, requirement boxes, status and the edited submission all came back. Deleted |
+| Duplicates | The same resume under two names was flagged in the results and in the submission |
+| Seen before | Re-screening people from a saved session produced one grouped notice naming the session and its status |
+| Phone width (375 px) | No sideways page scroll. Dialogs fit. The submission stacks into one column. The results table scrolls inside its box |
+| Console | No errors |
 
-**Not checked:** light mode after the M2 changes, Safari or Firefox, opening the CSV in Excel or Google Sheets, the operating system's file picker (files were attached by script, the same path drag-and-drop uses), the Docker image.
+**Not checked:** Safari or Firefox; Excel itself; light mode on the new screens; real printing; the operating system's file picker.
 
-## 6. Known bugs and limitations
+## 7. Known limitations
 
-1. **No real data.** Extraction, the job-description reader and the two-column fix have only seen synthetic text I wrote.
-2. **Skills are keyword presence.** No depth, recency or years per skill. The vocabulary is 93 skills; others must be typed, and typed skills match literally.
-3. **The job-description reader is rule-based.** Unusual wording is missed, and the recruiter fills the box by hand. Experience per skill in a job description ("3+ years in Spring") is not modelled.
-4. **Near-match margins are fixed choices:** 15 days on notice, 10% on CTC, 6 months on experience. They aren't editable in the page.
-5. **Location list is small.** A place not on it is sent for a manual check. Localities are mapped for Hyderabad mainly.
-6. **Answers from the call can't be entered.** An "Unknown" stays unknown until the resume changes.
-7. **Other stated conditions** (shifts, degree, days in office) are listed for the recruiter but not checked.
-8. **The 1.0 `decision` and `score` fields are still in the API response in experienced mode,** for compatibility. The page doesn't show them there, and they still include wording overlap.
-9. **Two-column detection is a heuristic.** It needs at least six lines with a wide gap, on at least half the page, with prose on the right. Other layouts (three columns, sidebars with short lines) fall back to the old behaviour.
-10. **Phone width** needs sideways scrolling inside the results table.
-11. **The page's JavaScript has no automated tests.** The CSV and all evaluation logic moved to the server and are tested; rendering was checked by hand.
-12. **No access control, upload cap, time limit or rate limit.** Fine on a laptop, not for a hosted copy.
-13. **Phone numbers:** Indian mobiles only.
+1. **Synthetic data only.** No accuracy claim can be made for real resumes, real job descriptions or real candidate messages.
+2. **Reply reading is deliberately loose.** It is safe only because every value is reviewed before it's used.
+3. **A recruiter-entered value is taken as typed.** There is no check against the resume beyond showing both.
+4. **Role and employer rules** depend on common layouts ("Title, Company (2022 to present)"). Other layouts return nothing.
+5. **Summaries are template sentences.** Useful as a start, flat as writing.
+6. **"Seen before" needs an identical phone number or email.**
+7. **Saved sessions hold personal data on disk, unencrypted,** protected by file permissions only. There is no backup, and deleting a session is permanent.
+8. **Single user.** Two browser tabs on the same session will overwrite each other's saves.
+9. **The page's JavaScript (about 1,300 lines) has no automated tests.**
+10. **Hosted copies** still have no access control, upload cap or rate limit, and run without sessions.
 
-## 7. Features still not implemented
-
-- Typing call answers back in and re-evaluating (M2b)
-- A printable call sheet (M2b)
-- Client tracker templates and XLSX export (M4)
-- Duplicate detection (M4)
-- SAP and Oracle skill packs (M4)
-- WhatsApp or message intake (M5)
-- Experience worked out from job dates; any language-model layer (M6)
-- Hosting, access codes, storage, submission memory (M7)
-- PDF export, vacancy management, a product dashboard: not on the roadmap
-
-## 8. Honest completion assessment
-
-**Yardstick:** 100% means an agency could rely on it for a live requirement today. My judgement; documents don't count.
-
-| Feature | In code | Automated tests | Checked in browser | Before | Now |
-|---|---|---|---|---:|---:|
-| Resume extraction | 7 fields, rules, column-aware PDFs | Yes, synthetic | Yes, incl. PDF and DOCX | 45% | 55% |
-| Evidence traceability | Quotes for facts; reasons for every check | Yes | Yes | 70% | 75% |
-| Job description parsing | Skills, experience, notice, CTC, location, other | Yes, synthetic | Yes | 15% | 55% |
-| Client requirements | Editable, explicit against suggested, validated | Yes | Yes | 5% | 65% |
-| Candidate evaluation | Three dimensions, five statuses, next step | Yes | Yes | 30% | 60% |
-| Candidate comparison | Side by side for 2 to 4 | No (page code) | Yes | 10% | 50% |
-| Client submission generator | Wider CSV only | Yes | Yes | 10% | 15% |
-| Vacancy management | No | No | No | 0% | 0% |
-| Dashboard | No | No | No | 0% | 0% |
-| CSV export | Server-built, both modes | Yes | Yes | 75% | 85% |
-| PDF export | No | No | No | 0% | 0% |
-
-What holds every number below 100: no real resumes or job descriptions, and no pilot.
-
-## 9. Git
+## 8. Git
 
 | Item | Value |
 |---|---|
 | Branch | `v2` |
-| Commits this session | `6acdd9f` checkpoint, `8eee1c3` M1 fixes, `d622062` M2 backend, `1a4bfe3` M2 frontend, then a documentation commit containing this file |
-| Tags | `v1-baseline` (1.0), `m2-start` (before this session's code) |
+| Tags | `v1-baseline`, `m2-start`, `m3-start` |
+| Commits this sprint | `e776fad` script move, `8ec7d34` M2b backend, `e8b8c8d` M2b page, `7cbd3f1` M3 backend, `cb238da` M3 page, `8098c35` saved sessions, then a documentation commit containing this file |
 | Remote | **None.** The repository exists only on this laptop |
 
-Run `git log --oneline -6` for the exact latest hash.
+Run `git log --oneline -8` for exact hashes.
 
-## 10. How to run it
-
-From the repository root:
+## 9. How to run it
 
 ```bash
-.venv/bin/uvicorn app.main:app --port 8765
+cd ~/ai-recruiter-os && .venv/bin/uvicorn app.main:app --port 8765
 ```
 
-Open http://localhost:8765. Tick "Hiring experienced candidates", then press "Try it with sample data".
+Open http://localhost:8765, tick "Hiring experienced candidates" and press "Try it with sample data".
 
 ```bash
-.venv/bin/python -m pytest -q
+cd ~/ai-recruiter-os && .venv/bin/python -m pytest -q
 ```
 
-Expect 273 passed.
+Expect 348 passed. Restart the server after changing anything under `app/`.
 
-```bash
-.venv/bin/python -m outreach
-```
+## 10. Five biggest remaining weaknesses
 
-The outreach dashboard, at http://127.0.0.1:8770. Unchanged this session.
+1. **It has never met a real resume, job description or recruiter.** Everything else is secondary to this.
+2. **Skills fit is keyword presence** against 93 skills. It can't tell two years of Java from ten, or a course from a job.
+3. **The output isn't the client's own tracker.** Agencies submit in the client's format; this exports in ours.
+4. **One person, one computer.** A two-recruiter agency can't share a session, and there is no backup.
+5. **The page is untested code.** Every screen was checked by hand once; nothing stops a later change from breaking it.
 
-The server doesn't reload Python changes by itself. Restart it after editing anything under `app/`.
+## 11. Ideas considered, and three new opportunities
 
-## 11. Best next milestone
+Ranked by time saved per use, how often it happens, and effort:
 
-**M2b: let the recruiter enter what the candidate said on the call, and re-evaluate.**
+| # | Idea | Value | Effort | Decision |
+|---:|---|---|---|---|
+| 1 | Paste the candidate's reply to fill answers | High, several times a day | Low | **Built** |
+| 2 | Pre-submission checks | High, every submission | Low | **Built** |
+| 3 | Duplicates and "seen before" | Medium to high | Low | **Built** |
+| 4 | Corrections as measurement | High for trust and sales | Low | Next (M4) |
+| 5 | Questions for the client when the job description is silent on budget, notice or location | Medium | Low | Later |
+| 6 | A "waiting on" list across sessions for answers marked asked | Medium | Low | Later |
+| 7 | Client tracker templates | High once a real tracker is seen | Medium | Gated (M5) |
+| 8 | Natural-language search over candidates | Low at this scale | High | Not worth it yet |
 
-Today the tool says "Unknown: ask on the call" and then can't hear the answer. Adding an editable value beside each missing or unclear fact, marked "entered by recruiter" and kept apart from resume evidence, closes the loop from resume to submission. It needs no storage and no new dependency, and it is the step that turns the evaluation into something a recruiter can finish a submission with.
+**Three opportunities found while building:**
+
+1. **Every correction is a free accuracy label.** When a recruiter replaces a resume value in call notes, that is a measured disagreement between the extractor and reality. Counting these per field gives a real error rate from pilot use, with no extra work for the recruiter.
+2. **"Paste anything" intake.** The reply reader already turns loose text into reviewed values. The same step could take a Naukri profile's text, an email, or a WhatsApp chat pasted whole, which reaches the M5 goal without parsing export files.
+3. **Submission memory as fee protection.** "Seen before" knows who was in which session. Recording which candidates actually went to which client, and when, would warn before a duplicate submission, which is where agencies lose fees.
+
+## 12. Recommended next milestone
+
+**M4: pilot kit and measurement.** Run the tool on one agency's real, permissioned requirement, on your laptop, with them watching. Count how many extracted values they correct, per field. Record how long resumes-to-submission takes with and without it.
+
+No further feature will tell you as much as that one session, and the list of what to build next should come from it.
 
 ## To resume safely
 
 1. `cd ~/ai-recruiter-os`, check `git status` is clean and the branch is `v2`.
-2. Run the tests and expect 273 passed.
-3. Read [roadmap.md](roadmap.md), then sections 6 and 11 above.
-4. Don't change `app/services/scoring.py` or `suggestions.py` for 1.0 inputs: `test_campus_result_is_unchanged_by_m2` and `test_campus_csv_matches_the_1_0_file_exactly` pin them.
+2. Run the tests and expect 348 passed.
+3. Read [roadmap.md](roadmap.md), then sections 3, 7 and 10 above.
+4. `data/workspace.db` appears the first time a session is saved. It is ignored by git and holds personal data.

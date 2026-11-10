@@ -25,5 +25,8 @@ Stop competing on ranking. Naukri, Zoho, Manatal and Recruit CRM already ship AI
 |---|---|
 | M0. Baseline, branch, plan | Done |
 | M1. Candidate facts with evidence | Done on `v2` (see [roadmap.md](roadmap.md)) |
-| M2. Requirements and constraint-aware evaluation | Done on `v2`, except typing call answers back in (M2b) |
-| M3 onwards | Not started. M4 onwards is gated on evidence from discovery calls |
+| M2. Requirements and constraint-aware evaluation | Done on `v2` |
+| M2b. Call answers and re-evaluation | Done on `v2` |
+| M3. Client submissions | Done on `v2` |
+| M3b. Saved sessions (local only) | Done on `v2` |
+| M4 onwards | Not started. Each is gated: see the roadmap |

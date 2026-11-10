@@ -571,10 +571,20 @@ async function workspaceCall(method, path, body) {
 const clockTime = () => new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 const storedSubmission = () => (submission ? { ...submission, excluded: [...submission.excluded] } : null);
 
+// One line per other session, however many people it shares with this one.
 function seenNotes() {
-  return seenElsewhere.map((seen) => el("p", { class: "notice warn" }, el("strong", {}, "Seen before: "),
-    `${seen.name} (${seen.file_name}) is also in your saved session “${seen.session_name}” from ${seen.saved_on}, ` +
-    `which is marked ${SESSION_STATUSES[seen.session_status].toLowerCase()}. Same ${seen.matched_on}. Check before calling or submitting again.`));
+  const bySession = new Map();
+  for (const seen of seenElsewhere) {
+    if (!bySession.has(seen.session_id)) bySession.set(seen.session_id, { ...seen, people: [] });
+    const people = bySession.get(seen.session_id).people;
+    if (!people.includes(seen.name)) people.push(seen.name);
+  }
+  return [...bySession.values()].map((group) => {
+    const shown = group.people.slice(0, 4).join(", ") + (group.people.length > 4 ? ` and ${group.people.length - 4} more` : "");
+    return el("p", { class: "notice warn" }, el("strong", {}, "Seen before: "),
+      `${shown} ${group.people.length === 1 ? "is" : "are"} also in your saved session “${group.session_name}” from ${group.saved_on}, ` +
+      `marked ${SESSION_STATUSES[group.session_status].toLowerCase()} (matched on phone number or email). Check before calling or submitting again.`);
+  });
 }
 
 async function checkSeen() {
