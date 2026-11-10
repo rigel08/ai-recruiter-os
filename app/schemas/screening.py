@@ -14,6 +14,7 @@ class Fact(BaseModel):
     quote: str = Field(description="The exact line from the resume")
     note: str | None = None
     confirm: bool = Field(default=False, description="The resume is unclear here; check on the call")
+    low: float | None = Field(default=None, description="Lower end when the resume gives a range; `value` is the upper end")
 
 
 class CandidateFacts(BaseModel):

@@ -10,7 +10,7 @@ Nothing here reads age, gender, marital status or any other protected attribute.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 # field key -> label a recruiter reads
 FIELD_LABELS = {
@@ -43,6 +43,8 @@ class Found:
     quote: str
     note: str | None = None
     confirm: bool = False  # the resume is unclear here, so the recruiter should check on the call
+    low: float | None = None  # the lower end, when the resume gives a range and `value` is the upper end
+    tags: tuple[str, ...] = ()  # "negotiable", "serving", "per_skill": facts the evaluation needs to know about
 
 
 # Shared pieces -------------------------------------------------------------------------------------
@@ -92,7 +94,7 @@ def _with_conflict(first: Found, others: list[Found]) -> Found:
     for other in others:
         if other.value is not None and first.value is not None and other.value != first.value:
             note = f"The resume also says {other.display}. Confirm on the call."
-            return Found(first.value, first.display, first.quote, f"{first.note} {note}" if first.note else note, True)
+            return replace(first, note=f"{first.note} {note}" if first.note else note, confirm=True)
     return first
 
 
@@ -127,7 +129,7 @@ def _phone(lines: list[str]) -> Found | None:
 _YEARS = r"(\d{1,2}(?:\.\d{1,2})?)\s*\+?\s*(?:years?|yrs?)\b(?:\s*(?:and|&|,)?\s*(\d{1,2})\s*(?:months?|mos?)\b)?"
 # "Total experience: 6.5 years", "Overall exp - 4 yrs 3 months"
 _EXPERIENCE_QUALIFIED = re.compile(
-    rf"\b(?:total|overall)\s+(?:(?:work|professional|it|industry)\s+)?exp(?:erience)?\b\.?{_SEP}(?:around|about|approx\.?|over|nearly)?\s*{_YEARS}",
+    rf"\b(?:total|overall)\s+(?:(?:work|professional|it|industry)\s+)?(?:experience\b|exp\b\.?){_SEP}(?:around|about|approx\.?|over|nearly)?\s*{_YEARS}",
     re.IGNORECASE,
 )
 # A bare "Experience" needs a separator, so a section heading followed by a job line doesn't count.
@@ -142,6 +144,8 @@ _NOT_THE_CANDIDATE = re.compile(r"\b(?:required|requires?|minimum|at least|must 
 _SOMEONE_ELSE = re.compile(r"\b(?:company|firm|organi[sz]ation|client|vendor|provider)\b", re.IGNORECASE)
 # "2 years of experience at TCS" is one employer, not the total.
 _AT_AN_EMPLOYER = re.compile(r"\s+at\s+[A-Z]")
+_FOR_A_SKILL = re.compile(r"\s+(?:in|with|on|using)\s", re.IGNORECASE)
+_SAYS_TOTAL = re.compile(r"\b(?:total|overall|professional|work|working|industry|it)\b", re.IGNORECASE)
 
 
 def _years(whole: str, months: str | None) -> tuple[float, str, str | None] | None:
@@ -165,7 +169,8 @@ def _years(whole: str, months: str | None) -> tuple[float, str, str | None] | No
 
 def _experience(lines: list[str]) -> Found | None:
     labelled: list[Found] = []
-    stated: list[tuple[int, Found]] = []
+    stated: list[tuple[int, Found]] = []    # reads as a total
+    specific: list[tuple[int, Found]] = []  # reads as experience in one skill or area
     for _, unit in _units(lines):
         match = _EXPERIENCE_QUALIFIED.search(unit) or _EXPERIENCE_BARE.search(unit)
         if match:
@@ -191,21 +196,33 @@ def _experience(lines: list[str]) -> Found | None:
             parsed = _years(match.group(1), match.group(2))
             if parsed:
                 note = "Stated by the candidate, not worked out from job dates."
-                stated.append((index, Found(parsed[0], parsed[1], _clip(line, match.start(), match.end()),
-                                            f"{parsed[2]} {note}" if parsed[2] else note)))
-    if not stated:
+                # "4 years of experience in Node.js" is about one skill; "7 years of total experience" is not.
+                per_skill = bool(_FOR_A_SKILL.match(line[match.end():])) and not _SAYS_TOTAL.search(match.group(0))
+                found = Found(parsed[0], parsed[1], _clip(line, match.start(), match.end()),
+                              f"{parsed[2]} {note}" if parsed[2] else note)
+                (specific if per_skill else stated).append((index, found))
+    if stated:
+        # The summary at the top states the total; figures further down are usually narrower.
+        near_top = [found for index, found in stated if index < SUMMARY_LINES]
+        pool = near_top or [found for _, found in stated]
+        best = max(pool, key=lambda found: found.value)
+        others = sorted({found.display for found in pool if found.value != best.value})
+        if others:
+            note = f"The resume also mentions {', '.join(others)}, so this may not be the total. Confirm on the call."
+            return replace(best, note=f"{best.note} {note}", confirm=True)
+        return best
+    if not specific:
         return None
-    # The summary at the top states the total; figures further down are usually per skill.
-    # "8 years of experience ... 3 years of experience in AWS": the largest figure is the total.
-    near_top = [found for index, found in stated if index < SUMMARY_LINES]
-    pool = near_top or [found for _, found in stated]
-    best = max(pool, key=lambda found: found.value)
-    others = sorted({found.display for found in pool if found.value != best.value})
-    if others:
-        # "4 years of experience in Node.js, 2 years in Java": these may be per skill, not a total.
-        note = f"The resume also mentions {', '.join(others)}, so this may not be the total. Confirm on the call."
-        return Found(best.value, best.display, best.quote, f"{best.note} {note}" if best.note else note, True)
-    return best
+    figures = list(dict.fromkeys(found.display for _, found in specific))
+    if len(figures) == 1:
+        only = specific[0][1]
+        return replace(only, note=f"{only.note} Given for a specific area, so the total may be higher.")
+    # "4 years of experience in Node.js, 2 years of experience in Java": adding or picking one would be a
+    # guess, so no total is given.
+    first = specific[0][1]
+    return Found(None, f"Per-skill figures only ({', '.join(figures)})", first.quote,
+                 "The resume gives experience for specific skills, not a total. Ask for the total.",
+                 tags=("per_skill",))
 
 
 # Notice period -------------------------------------------------------------------------------------
@@ -232,7 +249,7 @@ _LAST_DAY = re.compile(
 _NEGOTIABLE = re.compile(r"\b(?:negotiable|buy[- ]?out|can be reduced|early release)\b", re.IGNORECASE)
 
 
-def _days(low: str, high: str | None, unit: str) -> tuple[float, str, str | None] | None:
+def _days(low: str, high: str | None, unit: str) -> tuple[float, str, str | None, float | None] | None:
     scale = 30 if unit.lower().startswith("m") else 7 if unit.lower().startswith("w") else 1
     upper = int(high) if high else int(low)
     days = upper * scale
@@ -240,7 +257,9 @@ def _days(low: str, high: str | None, unit: str) -> tuple[float, str, str | None
         return None
     word = "month" if scale == 30 else "week"
     shown = f"{days} days" if scale == 1 else f"{days} days ({upper} {word}{'' if upper == 1 else 's'})"
-    return float(days), shown, ("A range was given; the longer end is shown." if high else None)
+    if high and int(low) < upper:
+        return float(days), shown, "A range was given; the longer end is shown.", float(int(low) * scale)
+    return float(days), shown, None, None
 
 
 def _notice_from(unit: str) -> Found | None:
@@ -253,15 +272,17 @@ def _notice_from(unit: str) -> Found | None:
                 return None
             notes = [parsed[2]] if parsed[2] else []
             # Only the words straight after the value, up to the next field on the line.
-            if _NEGOTIABLE.search(re.split(r"[|;]", unit[match.end():])[0][:60]):
+            negotiable = bool(_NEGOTIABLE.search(re.split(r"[|;]", unit[match.end():])[0][:60]))
+            if negotiable:
                 notes.append("The resume says this can be shortened.")
-            return Found(parsed[0], parsed[1], _clip(unit, match.start(), match.end()), " ".join(notes) or None)
+            return Found(parsed[0], parsed[1], _clip(unit, match.start(), match.end()), " ".join(notes) or None,
+                         low=parsed[3], tags=("negotiable",) if negotiable else ())
         if immediate:
             up_to = _IMMEDIATE_UP_TO.match(unit[match.end():])
             parsed = _days(up_to.group(1), None, up_to.group(2)) if up_to else None
             if parsed:
                 return Found(parsed[0], parsed[1], _clip(unit, match.start(), match.end() + up_to.end()),
-                             "The resume says immediate to this long; the longer end is shown.")
+                             "The resume says immediate to this long; the longer end is shown.", low=0.0)
             return Found(0.0, "Immediate", _clip(unit, match.start(), match.end()))
         if serving:
             return _serving(unit, match)
@@ -270,7 +291,7 @@ def _notice_from(unit: str) -> Found | None:
     if match:
         parsed = _days(match.group(1), match.group(2), match.group(3))
         if parsed:
-            return Found(parsed[0], parsed[1], _clip(unit, match.start(), match.end()), parsed[2])
+            return Found(parsed[0], parsed[1], _clip(unit, match.start(), match.end()), parsed[2], low=parsed[3])
 
     match = _NOTICE_CAN_JOIN.search(unit)
     if match:
@@ -278,7 +299,7 @@ def _notice_from(unit: str) -> Found | None:
             return Found(0.0, "Immediate", _clip(unit, match.start(), match.end()))
         parsed = _days(match.group(2), match.group(3), match.group(4))
         if parsed:
-            return Found(parsed[0], parsed[1], _clip(unit, match.start(), match.end()), parsed[2])
+            return Found(parsed[0], parsed[1], _clip(unit, match.start(), match.end()), parsed[2], low=parsed[3])
 
     match = _NOTICE_IMMEDIATE_JOINER.search(unit)
     if match:
@@ -293,7 +314,8 @@ def _notice_from(unit: str) -> Found | None:
 def _serving(unit: str, match: re.Match[str]) -> Found:
     last_day = _LAST_DAY.search(unit)
     note = f"Last working day stated: {last_day.group(1).strip(' .,')}." if last_day else "No last working day stated."
-    return Found(None, "Serving notice", _clip(unit, match.start(), match.end()), note)
+    # No day count is made up here: a last working day is reported as written, not turned into days.
+    return Found(None, "Serving notice", _clip(unit, match.start(), match.end()), note, tags=("serving",))
 
 
 def _notice(lines: list[str]) -> Found | None:
@@ -337,14 +359,14 @@ _PAIR = re.compile(
 )
 
 
-def _money(after: str) -> tuple[float | None, str, str | None] | None:
-    """Read an amount from the text straight after a pay label. Returns (LPA, display, note)."""
+def _money(after: str) -> tuple[float | None, str, str | None, float | None] | None:
+    """Read an amount from the text straight after a pay label. Returns (LPA, display, note, lower end of a range)."""
     words = _CTC_WORDS.match(after)
     if words:
         text = " ".join(words.group(1).split())
-        return None, text[0].upper() + text[1:], "Not a figure."
+        return None, text[0].upper() + text[1:], "Not a figure.", None
     if _NOT_RUPEES.match(after):
-        return None, after.split("|")[0].strip(" .,;")[:30], "Not in rupees, so it isn't converted."
+        return None, after.split("|")[0].strip(" .,;")[:30], "Not in rupees, so it isn't converted.", None
     match = _AMOUNT.match(after)
     if not match:
         return None
@@ -375,6 +397,7 @@ def _money(after: str) -> tuple[float | None, str, str | None] | None:
         return None
 
     value = to_lpa(low)
+    lower = None
     if value is None or not MIN_LPA <= value <= MAX_LPA:
         return None
     shown = f"{_number(value)} LPA"
@@ -382,9 +405,9 @@ def _money(after: str) -> tuple[float | None, str, str | None] | None:
         upper = to_lpa(high)
         if upper is not None and value < upper <= MAX_LPA:
             shown = f"{_number(value)}–{_number(upper)} LPA"
-            value = upper
+            lower, value = round(value, 2), upper
             notes.append("A range was given; the higher end is used.")
-    return round(value, 2), shown, " ".join(dict.fromkeys(notes)) or None
+    return round(value, 2), shown, " ".join(dict.fromkeys(notes)) or None, lower
 
 
 def _ctc(lines: list[str]) -> tuple[Found | None, Found | None]:
@@ -401,7 +424,8 @@ def _ctc(lines: list[str]) -> tuple[Found | None, Found | None]:
             for match in pattern.finditer(unit):
                 parsed = _money(unit[match.end():])
                 if parsed:
-                    bucket.append(Found(parsed[0], parsed[1], _clip(unit, match.start(), match.end() + 30), parsed[2]))
+                    bucket.append(Found(parsed[0], parsed[1], _clip(unit, match.start(), match.end() + 30), parsed[2],
+                                        low=parsed[3]))
 
     def pick(found: list[Found]) -> Found | None:
         if not found:
@@ -436,6 +460,22 @@ def _place(raw: str) -> str | None:
     return text
 
 
+# Labels that mark a personal-details block. They are only used to tell where on the page a line sits.
+_PERSONAL_FIELD = re.compile(
+    r"\b(?:c?ctc|ectc|salary|notice\s*period|total\s+exp(?:erience)?|mobile|phone|e-?mail|personal\s+details?|languages?\s+known)\b",
+    re.IGNORECASE,
+)
+
+
+def _among_personal_details(lines: list[str], index: int) -> bool:
+    """True when a neighbouring line holds another tracker field, as in a "Personal details" block.
+
+    A past job's "Location: Chennai" sits among job titles and dates instead, and is still ignored.
+    """
+    neighbours = lines[max(0, index - 2): index] + lines[index + 1: index + 3]
+    return any(_PERSONAL_FIELD.search(line) for line in neighbours)
+
+
 def _locations(lines: list[str]) -> tuple[Found | None, Found | None]:
     current: Found | None = None
     preferred: Found | None = None
@@ -452,7 +492,7 @@ def _locations(lines: list[str]) -> tuple[Found | None, Found | None]:
             # Hide "Preferred location: X" first, so its "location: X" isn't read as the current one.
             searchable = _PREFERRED_LOCATION.sub(lambda m: " " * len(m.group(0)), unit)
             match = _CURRENT_LOCATION.search(searchable)
-            if not match and index < HEADER_LINES:
+            if not match and (index < HEADER_LINES or _among_personal_details(lines, index)):
                 match = _BARE_LOCATION.search(searchable)
             if match:
                 place = _place(next(group for group in match.groups() if group))

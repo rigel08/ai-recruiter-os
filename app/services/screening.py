@@ -82,7 +82,7 @@ def screen(
                 interview_questions=suggestion.interview_questions,
                 facts=CandidateFacts(**{
                     field: Fact(value=fact.value, unit=FIELD_UNITS.get(field), display=fact.display,
-                                quote=fact.quote, note=fact.note, confirm=fact.confirm)
+                                quote=fact.quote, note=fact.note, confirm=fact.confirm, low=fact.low)
                     for field, fact in found.items()
                 }),
                 to_ask=questions_to_ask(found),

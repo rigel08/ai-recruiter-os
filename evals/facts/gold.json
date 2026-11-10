@@ -148,11 +148,9 @@
    }
   },
   {
-   "id": "exp-largest-is-total",
+   "id": "trap-exp-per-skill-only",
    "text": "Summary\n8 years of experience in SAP. 3 years of experience in S/4HANA migration.",
-   "expect": {
-    "total_experience": 8
-   }
+   "expect": {}
   },
   {
    "id": "exp-fresher",
@@ -482,6 +480,47 @@
     "current_ctc": 7.2,
     "notice_period": 30
    }
+  },
+  {
+   "id": "exp-total-beats-per-skill",
+   "text": "8 years of total experience. 3 years of experience in S/4HANA migration.",
+   "expect": {
+    "total_experience": 8
+   }
+  },
+  {
+   "id": "exp-single-area",
+   "text": "Lead Engineer with 9 years of experience in Java backend systems.",
+   "expect": {
+    "total_experience": 9
+   }
+  },
+  {
+   "id": "trap-exp-two-skills",
+   "text": "4 years of experience in Node.js and React, 2 years of experience in Java.",
+   "expect": {}
+  },
+  {
+   "id": "loc-personal-block",
+   "text": "Anil Varma\nSenior Java Developer\nanil.varma@example.com\nSummary\nBackend developer working on payments.\nSkills\nJava, Spring Boot, Kafka\nAWS, Docker\nEducation\nB.Tech, JNTU Hyderabad, 2016\nCertifications\nAWS Developer Associate\nProjects\nPayments gateway rewrite\nWork history\nTech Lead, Finserve Ltd, 2021 to present\nPersonal details\nCCTC: 14 LPA, ECTC: 18 LPA\nLocation: Hyderabad",
+   "expect": {
+    "current_location": "Hyderabad",
+    "current_ctc": 14,
+    "expected_ctc": 18
+   }
+  },
+  {
+   "id": "loc-after-notice-line",
+   "text": "Anil Varma\nSenior Java Developer\nanil.varma@example.com\nSummary\nBackend developer working on payments.\nSkills\nJava, Spring Boot, Kafka\nAWS, Docker\nEducation\nB.Tech, JNTU Hyderabad, 2016\nCertifications\nAWS Developer Associate\nProjects\nPayments gateway rewrite\nWork history\nTech Lead, Finserve Ltd, 2021 to present\nNotice Period: 30 days\nCity: Pune",
+   "expect": {
+    "current_location": "Pune",
+    "notice_period": 30
+   }
+  },
+  {
+   "id": "np-serving-with-date-no-days",
+   "text": "Serving notice period. Last working day: 15 December 2026",
+   "expect": {}
   }
  ]
 }

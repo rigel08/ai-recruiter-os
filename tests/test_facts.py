@@ -109,10 +109,22 @@ def test_a_labelled_total_beats_figures_in_sentences():
     assert (fact.value, fact.display, fact.confirm) == (6.25, "6 years 3 months", False)
 
 
-def test_per_skill_figures_are_flagged_as_possibly_not_the_total():
-    fact = extract_facts("4 years of experience in Node.js, 2 years of experience in Java")["total_experience"]
-    assert (fact.value, fact.confirm) == (4.0, True)
-    assert "2 years" in fact.note
+def test_per_skill_figures_are_not_added_up_or_picked_as_a_total():
+    facts = extract_facts("4 years of experience in Node.js and React, 2 years of experience in Java")
+    fact = facts["total_experience"]
+    assert fact.value is None and "per_skill" in fact.tags
+    assert fact.display == "Per-skill figures only (4 years, 2 years)"
+    assert any(item.startswith("Total experience: resume says") for item in questions_to_ask(facts))
+
+
+def test_a_stated_total_wins_over_per_skill_figures():
+    fact = extract_facts("8 years of total experience. 3 years of experience in AWS.")["total_experience"]
+    assert (fact.value, fact.confirm) == (8.0, False)
+
+
+def test_one_figure_for_one_area_is_kept_with_a_caution():
+    fact = extract_facts("Lead Engineer with 9 years of experience in Java backend systems.")["total_experience"]
+    assert fact.value == 9.0 and "total may be higher" in fact.note
 
 
 def test_five_point_ten_years_means_five_years_ten_months():
@@ -150,3 +162,44 @@ def test_phone(text, phone):
 def test_protected_details_are_never_extracted():
     text = "DOB: 12-08-1994 | Gender: Female | Marital Status: Married | Religion: Hindu | Father's name: K Rao"
     assert extract_facts(text) == {}
+
+
+# ---------- M2 regression tests for M1 issues ----------
+
+WORK_HISTORY = "\n".join(f"Line {n} of the work history" for n in range(15))
+
+
+def test_bare_location_lower_down_counts_inside_a_personal_details_block():
+    text = WORK_HISTORY + "\nCCTC: 14 LPA, ECTC: 18-20 LPA\nLocation: Hyderabad"
+    assert value(text, "current_location") == "Hyderabad"
+    two_lines_away = WORK_HISTORY + "\nMobile: 9845012345\nLanguages known: English, Telugu\nCity: Pune"
+    assert value(two_lines_away, "current_location") == "Pune"
+
+
+def test_bare_location_beside_a_past_job_is_still_ignored():
+    text = WORK_HISTORY + "\nTech Lead, Finserve Ltd, 2021 to present\nLocation: Chennai\nBuilt settlement services."
+    assert value(text, "current_location") is None
+
+
+@pytest.mark.parametrize("text", [
+    "Currently serving notice period.",
+    "Serving notice period, last working day is 28th November 2026",
+    "Notice period: serving, LWD 30 Nov 2026",
+])
+def test_serving_notice_never_becomes_a_number_of_days(text):
+    fact = extract_facts(text)["notice_period"]
+    assert fact.value is None and fact.low is None
+    assert fact.display == "Serving notice" and "serving" in fact.tags
+
+
+def test_ranges_keep_both_ends():
+    facts = extract_facts("Expected CTC: 18-20 LPA\nNotice period: 30-45 days")
+    assert (facts["expected_ctc"].low, facts["expected_ctc"].value) == (18.0, 20.0)
+    assert (facts["notice_period"].low, facts["notice_period"].value) == (30.0, 45.0)
+    assert extract_facts("Expected CTC: 20 LPA")["expected_ctc"].low is None
+
+
+def test_negotiable_notice_is_tagged_only_for_the_notice_field():
+    assert "negotiable" in extract_facts("Notice Period: 90 Days (negotiable)")["notice_period"].tags
+    row = "Expected CTC: Negotiable | Notice Period: 30 days"
+    assert extract_facts(row)["notice_period"].tags == ()
