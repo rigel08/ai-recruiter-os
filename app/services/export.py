@@ -31,8 +31,10 @@ EXPERIENCED_HEADER = (
      "Skills fit", "Skills score", "Required skills matched", "Required skills missing", "Preferred skills matched",
      "Experience check", "Notice period check", "CTC check", "Location check", "Information stated"]
     + [title for _, title in FACT_COLUMNS]
-    + ["Ask on the call", "Notes", "Evidence", "Interview questions"]
+    + ["Still to ask", "Sources and notes", "Resume evidence", "Recruiter remarks", "Interview questions"]
 )
+
+SOURCE_WORDS = {"recruiter_confirmed": "confirmed with the candidate", "recruiter_entered": "entered by the recruiter"}
 
 _FORMULA_START = re.compile(r"^[=+\-@\t\r]")
 
@@ -83,23 +85,33 @@ def _experienced_row(c: CandidateResult) -> list:
     present = {key: fact for key, fact in facts.items() if fact is not None}
 
     values = []
+    notes = []
     for key, _ in FACT_COLUMNS:
         fact = facts[key]
-        # A value only where the resume gives one: words such as "Negotiable" stay out of number columns.
-        if fact is None or fact.value is None:
+        resolved = c.resolved.get(key) if c.resolved else None
+        # The value in use: the resume's, or what the recruiter recorded on a call. Words such as
+        # "Negotiable" stay out of number columns.
+        value = resolved.value if resolved else (fact.value if fact else None)
+        if value is None:
             values.append("")
         elif key == "phone":
-            values.append(str(fact.value).lstrip("+"))  # no leading "+", so the formula guard leaves it alone
+            values.append(str(value).lstrip("+"))  # no leading "+", so the formula guard leaves it alone
         else:
-            values.append(fact.value)
+            values.append(value)
 
-    notes = []
-    for key, fact in present.items():
         parts = []
-        if fact.unit and f"{_text(fact.value)} {fact.unit}" != fact.display:
-            parts.append(f'shown as "{fact.display}"')
-        if fact.note:
-            parts.append(fact.note)
+        if resolved and resolved.source in SOURCE_WORDS:
+            said = f" (resume says {resolved.resume_display})" if resolved.source == "recruiter_entered" and resolved.resume_display else ""
+            parts.append(SOURCE_WORDS[resolved.source] + said)
+        elif fact is not None:
+            if fact.unit and f"{_text(fact.value)} {fact.unit}" != fact.display:
+                parts.append(f'shown as "{fact.display}"')
+            if fact.note:
+                parts.append(fact.note)
+        if resolved and resolved.state == "pending":
+            parts.append("asked, waiting for an answer")
+        if resolved and resolved.state == "not_applicable":
+            parts.append("marked not applicable")
         if parts:
             notes.append(f"{FACT_NAMES[key]}: {'; '.join(parts)}")
     evidence = [f'{FACT_NAMES[key]}: "{fact.quote}"' for key, fact in present.items()]
@@ -110,7 +122,7 @@ def _experienced_row(c: CandidateResult) -> list:
         "; ".join(e.skills.required_missing), "; ".join(e.skills.preferred_matched),
         _check_text(e.skills.experience), _check_text(by_key.get("notice_period")), _check_text(by_key.get("ctc")),
         _check_text(by_key.get("location")), f"{e.completeness.stated} of {e.completeness.total}",
-        *values, _ask_text(c.to_ask), " | ".join(notes), " | ".join(evidence), " | ".join(c.interview_questions),
+        *values, _ask_text(c.to_ask), " | ".join(notes), " | ".join(evidence), c.remarks, " | ".join(c.interview_questions),
     ]
 
 

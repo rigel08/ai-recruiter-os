@@ -5,7 +5,17 @@
 const $ = (id) => document.getElementById(id);
 const LABELS = { shortlist: "Shortlist", maybe: "Maybe", not_a_fit: "Not a fit" };
 const fileInput = $("resumes");
-let lastResult = null;
+let lastResult = null;   // what is on screen: the screening result with any call answers applied
+let baseResult = null;   // the result exactly as the screening returned it; call answers are applied to this
+let clarifications = {}; // call answers and remarks, keyed by resume file name
+
+function startResult(data, answers = {}) {
+  baseResult = data;
+  lastResult = data;
+  clarifications = answers;
+  activeFilter = "all";
+  compared.clear();
+}
 let activeFilter = "all";
 
 // ---------- Experienced-hire mode ----------
@@ -198,9 +208,7 @@ form.addEventListener("submit", async (event) => {
     const response = await fetch("/api/screenings", { method: "POST", body });
     const data = await response.json().catch(() => null);
     if (!response.ok) throw new Error(errorMessage(data));
-    lastResult = data;
-    activeFilter = "all";
-    compared.clear();
+    startResult(data);
     render();
     $("results").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (error) {
@@ -418,16 +426,15 @@ function experiencedRow(c) {
   if (e.constraints.checks.length) limits.append(...e.constraints.checks.map(checkLine));
   else limits.append(el("span", { class: "hint" }, "No client limits were set."));
 
-  const info = factsCell(c);
-  info.prepend(el("div", { class: "stated" },
-    el("strong", {}, `${e.completeness.stated} of ${e.completeness.total}`), " tracker fields stated"));
+  const info = infoCell(c);
 
   return el("tr", {},
     el("td", { class: "rank" }, String(c.rank), pick),
     el("td", { class: "who" },
       el("strong", {}, c.name || c.file_name),
       c.email ? el("span", {}, c.email) : null,
-      c.facts.phone ? el("span", {}, c.facts.phone.display) : null,
+      c.resolved.phone.display ? el("span", {}, c.resolved.phone.display,
+        c.resolved.phone.source === "resume" ? null : sourceTag(c.resolved.phone.source)) : null,
       c.name ? el("span", {}, c.file_name) : null),
     el("td", { class: "dim step" }, stepBadge(e.next_step), el("div", { class: "reason" }, e.next_step.reason)),
     skills, limits, info);
@@ -450,7 +457,9 @@ function renderCompare() {
   note.textContent = chosen.length < 2 ? "Tick one more candidate to compare."
     : `Showing the first ${MAX_COMPARED} of ${chosen.length} ticked.`;
 
-  const fact = (c, key) => (c.facts[key] ? c.facts[key].display : "Not stated");
+  // The value in use (which may come from a call), falling back to the resume's own words.
+  const fact = (c, key) => (c.resolved && c.resolved[key].display)
+    || (c.facts[key] ? c.facts[key].display : "Not stated");
   const withCheck = (text, check) => el("td", {}, text, check ? " " : null, check ? statusChip(check.status) : null,
     check ? el("div", { class: "reason" }, check.reason) : null);
   const limit = (c, key) => c.evaluation.constraints.checks.find((check) => check.requirement === key);
@@ -464,7 +473,7 @@ function renderCompare() {
     ["Current CTC", (c) => el("td", {}, fact(c, "current_ctc"))],
     ["Expected CTC", (c) => withCheck(fact(c, "expected_ctc"), limit(c, "ctc"))],
     ["Location", (c) => withCheck(fact(c, "current_location") +
-      (c.facts.preferred_location ? `; prefers ${c.facts.preferred_location.display}` : ""), limit(c, "location"))],
+      (fact(c, "preferred_location") !== "Not stated" ? `; prefers ${fact(c, "preferred_location")}` : ""), limit(c, "location"))],
     ["Missing or unclear", (c) => el("td", {},
       [...c.evaluation.completeness.missing, ...c.evaluation.completeness.unclear].join(", ") || "Nothing")],
     ["Evidence", (c) => el("td", { class: "facts" }, factsCell(c).querySelector("details") || "No facts stated.")],
@@ -557,6 +566,8 @@ $("again").addEventListener("click", () => {
   showFileList();
   $("results").hidden = true;
   lastResult = null;
+  baseResult = null;
+  clarifications = {};
   compared.clear();
   window.scrollTo({ top: 0, behavior: "smooth" });
 });

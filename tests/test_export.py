@@ -66,7 +66,7 @@ def test_experienced_csv_has_the_evaluation_facts_and_evidence():
     assert (divya["Next step"], divya["Skills fit"], divya["Information stated"]) == ("Looks ready", "Strong", "6 of 6")
     assert divya["Notice period check"] == "Meets: 30 days is within the 60-day limit."
     assert divya["Phone"] == "91 90000 00101"                       # no leading "+", so no apostrophe is added
-    assert 'Notice period: "Notice Period: 30 Days"' in divya["Evidence"]
+    assert 'Notice period: "Notice Period: 30 Days"' in divya["Resume evidence"]
 
     rohit = by_name["Rohit Verma"]
     assert rohit["Next step"] == "Conflicts with a limit" and rohit["Skills fit"] == "Strong"
@@ -77,11 +77,11 @@ def test_experienced_csv_has_the_evaluation_facts_and_evidence():
     lakshmi = by_name["Lakshmi Narayanan"]
     assert lakshmi["Expected CTC (LPA)"] == ""                      # "30% hike" is not a number
     assert lakshmi["CTC check"].startswith('Check by hand: Expected CTC on the resume is "30% hike"')
-    assert "Read \"8.10 years\" as 8 years 10 months" in lakshmi["Notes"]
+    assert "Read \"8.10 years\" as 8 years 10 months" in lakshmi["Sources and notes"]
 
     tanvi = by_name["Tanvi Deshpande"]
     assert tanvi["Next step"] == "Clarify first" and tanvi["Notice period check"].startswith("Unknown:")
-    assert tanvi["Ask on the call"].startswith("Phone number, Total experience")
+    assert tanvi["Still to ask"].startswith("Phone number, Total experience")
 
     number_columns = ["Skills score", "Total experience (years)", "Notice period (days)", "Current CTC (LPA)", "Expected CTC (LPA)"]
     for row in by_name.values():
@@ -114,3 +114,22 @@ def test_export_endpoint_rejects_things_that_are_not_results():
     result = screen("campus")
     result["candidates"] = result["candidates"][:1] * 251
     assert client.post("/api/exports/csv", json=result).status_code == 413
+
+
+def test_csv_after_a_call_shows_the_value_in_use_and_its_source():
+    result = screen("experienced", **LIMITS)
+    result["candidates"] = [c for c in result["candidates"] if c["status"] == "ranked"]
+    answers = {"rohit_verma.txt": {"answers": {"notice_period": {"state": "answered", "value": 45},
+                                               "expected_ctc": {"state": "confirmed"},
+                                               "current_ctc": {"state": "pending"}},
+                                   "remarks": "Open to a buyout."}}
+    updated = client.post("/api/clarifications/apply", json={"result": result, "clarifications": answers}).json()
+    table = rows(to_csv(ScreeningResult(**updated)))
+    rohit = {row[3]: dict(zip(table[0], row)) for row in table[1:]}["Rohit Verma"]
+    assert rohit["Notice period (days)"] == "45"                                     # the value in use
+    assert "Notice period: entered by the recruiter (resume says 90 days)" in rohit["Sources and notes"]
+    assert "Expected CTC: confirmed with the candidate" in rohit["Sources and notes"]
+    assert "Current CTC: asked, waiting for an answer" in rohit["Sources and notes"]
+    assert 'Notice period: "Notice Period: 90 Days"' in rohit["Resume evidence"]     # the resume is still quoted
+    assert rohit["Recruiter remarks"] == "Open to a buyout."
+    assert rohit["Notice period check"].startswith("Meets: 45 days")
