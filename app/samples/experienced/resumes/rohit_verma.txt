@@ -1,0 +1,21 @@
+Rohit Verma
+Principal Engineer
+rohit.verma@example.com | +91 90000 00106
+Current Location: Bengaluru
+
+Summary
+Backend engineer with 9 years of total experience designing high-volume payment systems.
+
+Skills
+Java, Spring Boot, SQL, PostgreSQL, REST APIs, Docker, Kubernetes, AWS, Redis, CI/CD
+
+Work history
+Principal Engineer, Quartzline Fintech, Bengaluru (2021 to present)
+- Designed card-settlement microservices in Java and Spring Boot on AWS with Kubernetes.
+- Cut PostgreSQL query times by 70% and introduced Redis caching.
+Senior Engineer, Fernhill Commerce, Bengaluru (2017 to 2021)
+
+Personal details
+Current CTC: 28 LPA
+Expected CTC: 34 LPA
+Notice Period: 90 Days

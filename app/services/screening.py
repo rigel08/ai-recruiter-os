@@ -9,10 +9,12 @@ from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass
 
-from app.schemas.screening import CandidateFacts, CandidateResult, Fact, ScreeningResult
+from app.schemas.screening import AppliedRequirements, CandidateFacts, CandidateResult, Fact, ScreeningResult
 from app.services.academics import find_cgpa
 from app.services.facts import FIELD_LABELS, FIELD_UNITS, extract_facts, questions_to_ask
+from app.services.evaluation import STEP_ORDER, evaluate, review_order
 from app.services.parsing import UnreadableDocument, extract_text
+from app.services.requirements import Requirements
 from app.services.scoring import explain, score_resume, word_counts
 from app.services.skills import skills_in, terms_from_input
 from app.services.suggestions import DECISION_ORDER, suggest
@@ -43,7 +45,13 @@ def screen(
     must_haves_raw: str,
     files: list[ResumeFile],
     min_cgpa: float | None = None,
+    requirements: Requirements | None = None,
 ) -> ScreeningResult:
+    """Rank the files. Passing `requirements` switches on experienced hiring.
+
+    Without it the result is exactly the 1.0 behaviour. With it, each candidate also gets an
+    evaluation against those requirements and the order follows that evaluation.
+    """
     must_haves = terms_from_input(must_haves_raw)
     must_have_names = {term.name.lower() for term in must_haves}
     other_skills = [term for term in skills_in(job_description) if term.name.lower() not in must_have_names]
@@ -86,6 +94,7 @@ def screen(
                     for field, fact in found.items()
                 }),
                 to_ask=questions_to_ask(found),
+                evaluation=evaluate(text, found, requirements) if requirements is not None else None,
             )
         )
 
@@ -94,6 +103,8 @@ def screen(
     ranked.sort(
         key=lambda c: (DECISION_ORDER[c.decision], -c.score, -len(c.must_haves_matched), c.file_name.lower())
     )
+    if requirements is not None:
+        ranked.sort(key=lambda c: review_order(c.evaluation, c.file_name))
     for position, candidate in enumerate(ranked, start=1):
         candidate.rank = position
 
@@ -115,6 +126,19 @@ def screen(
         needs_review_count=len(needs_review),
         decision_counts=counts,
         fact_coverage=coverage,
+        hiring_mode="experienced" if requirements is not None else "campus",
+        requirements=None if requirements is None else AppliedRequirements(
+            required_skills=[term.name for term in requirements.required_skills],
+            preferred_skills=[term.name for term in requirements.preferred_skills],
+            min_experience_years=requirements.min_experience_years,
+            max_experience_years=requirements.max_experience_years,
+            max_notice_days=requirements.max_notice_days,
+            max_ctc_lpa=requirements.max_ctc_lpa,
+            locations=requirements.locations,
+        ),
+        next_step_counts=None if requirements is None else {
+            key: sum(1 for c in ranked if c.evaluation.next_step.key == key) for key in STEP_ORDER
+        },
         candidates=ranked + needs_review,
     )
 

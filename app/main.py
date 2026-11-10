@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 
-from app.api.routes import samples, screenings
+from app.api.routes import exports, requirements, samples, screenings
 from app.services.screening import shutdown_pool
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -21,6 +21,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="AI Recruiter OS", version="0.2.0", lifespan=lifespan)
 app.include_router(screenings.router)
 app.include_router(samples.router)
+app.include_router(requirements.router)
+app.include_router(exports.router)
 
 
 # HEAD too, because uptime monitors often use it.

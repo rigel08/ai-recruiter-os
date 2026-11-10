@@ -1,0 +1,19 @@
+Neha Kapoor
+QA Automation Engineer
+neha.kapoor@example.com | Mobile: 9000000107
+Current Location: Hyderabad
+
+Summary
+QA engineer with 5 years of total experience in test automation for retail apps.
+
+Skills
+Selenium, Playwright, Python, pytest, Jenkins, Git, Agile
+
+Experience
+QA Automation Engineer, Larkspur Retail Tech, Hyderabad (2021 to present)
+- Built Selenium and Playwright suites in Python covering 400 test cases.
+- Ran nightly regression in Jenkins.
+
+Notice Period: 15 days
+Current CTC: 9.5 LPA
+Expected CTC: 12 LPA
