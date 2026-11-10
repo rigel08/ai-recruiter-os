@@ -130,6 +130,17 @@ class CandidateResult(BaseModel):
     resolved: dict[str, ResolvedFact] | None = Field(
         default=None, description="Experienced hiring only: each field's value in use and its source. `facts` is never changed")
     remarks: str = Field(default="", description="The recruiter's notes, once recorded")
+    profile: dict[str, Fact] = Field(
+        default_factory=dict,
+        description="Experienced hiring only: current designation, employer, education and relevant experience, where stated")
+
+
+class DuplicateGroup(BaseModel):
+    """Resumes that look like the same person, because they share a phone number or an email address."""
+
+    file_names: list[str]
+    names: list[str]
+    reason: str
 
 
 class ScreeningResult(BaseModel):
@@ -145,6 +156,7 @@ class ScreeningResult(BaseModel):
     hiring_mode: Literal["campus", "experienced"] = "campus"
     requirements: AppliedRequirements | None = Field(default=None, description="Present only for experienced hiring")
     next_step_counts: dict[StepKey, int] | None = None
+    duplicates: list[DuplicateGroup] = Field(default_factory=list, description="Experienced hiring only")
     candidates: list[CandidateResult] = Field(
         description="Ranked candidates first, then files that need a person to look. Campus hiring orders by "
         "shortlist, maybe, not a fit; experienced hiring orders by next step, and removes nobody"

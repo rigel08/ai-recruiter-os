@@ -13,8 +13,10 @@ from app.schemas.screening import AppliedRequirements, CandidateFacts, Candidate
 from app.services.academics import find_cgpa
 from app.services.facts import FIELD_LABELS, FIELD_UNITS, extract_facts, questions_to_ask
 from app.services.clarify import resolve, to_found
+from app.services.duplicates import find_duplicates
 from app.services.evaluation import STEP_ORDER, evaluate, review_order
 from app.services.parsing import UnreadableDocument, extract_text
+from app.services.profile import PROFILE_LABELS, extract_profile
 from app.services.requirements import Requirements
 from app.services.scoring import explain, score_resume, word_counts
 from app.services.skills import skills_in, terms_from_input
@@ -96,6 +98,11 @@ def screen(
                 }),
                 to_ask=questions_to_ask(found),
                 evaluation=evaluate(text, found, requirements) if requirements is not None else None,
+                profile={} if requirements is None else {
+                    key: Fact(value=fact.value, unit="years" if key == "relevant_experience" else None,
+                              display=fact.display, quote=fact.quote, note=fact.note)
+                    for key, fact in extract_profile(text).items() if key in PROFILE_LABELS
+                },
             )
         )
 
@@ -139,6 +146,7 @@ def screen(
             max_ctc_lpa=requirements.max_ctc_lpa,
             locations=requirements.locations,
         ),
+        duplicates=find_duplicates(ranked) if requirements is not None else [],
         next_step_counts=None if requirements is None else {
             key: sum(1 for c in ranked if c.evaluation.next_step.key == key) for key in STEP_ORDER
         },
