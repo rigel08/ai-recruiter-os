@@ -4,6 +4,15 @@ Paste a job description, upload up to 200 resumes, and get a ranked shortlist in
 
 Built for campus placement cells and small recruitment teams that still shortlist by hand.
 
+<!-- TODO: add a screenshot or GIF of a ranked shortlist here: ![AI Recruiter OS](docs/screenshot.png) -->
+
+**At a glance**
+
+- **Python, FastAPI, process-pool parsing:** 200 PDF/DOCX/TXT resumes ranked in about 2 seconds on an 8-core laptop.
+- **Explainable, rule-based scoring** (no black-box model): every score and next step comes with its reason and the resume line it came from.
+- **323 automated tests** (`pytest`), plus a labelled extraction check for the experienced-hiring mode.
+- **Safe by default:** resumes live only for one request, CSV exports are protected against formula injection, and protected details (age, gender, marital status) are never read.
+
 **New here?** Read [docs/how-it-works.md](docs/how-it-works.md) for the full walkthrough.
 
 ## Features
@@ -78,16 +87,6 @@ docker run -p 8000:8000 ai-recruiter-os
 
 The container listens on `$PORT` if the host sets it (as Render and Railway do), otherwise on 8000. The image hasn't been built yet, because Docker isn't installed on the development machine.
 
-## Outreach dashboard (local only)
-
-A separate, private dashboard for the first customer conversations lives in [outreach/](outreach/README.md). It isn't part of the screening app, isn't in the Docker image, and only answers on this computer:
-
-```bash
-.venv/bin/python -m outreach
-```
-
-Then open http://127.0.0.1:8770.
-
 ## API
 
 `POST /api/screenings` (multipart form):
@@ -132,8 +131,6 @@ Added on `v2`:
 | `app/static/index.html` | The recruiter-facing page |
 | `app/samples/` | Fictional demo job and resumes |
 | `docs/how-it-works.md` | Full explanation, trade-offs, interview prep |
-| `docs/pilot-outreach.md` | Messages and questions for pilot users |
-
 ## Next
 
 1. Run the pilot and adjust the rules to what recruiters actually check.
