@@ -4,7 +4,9 @@ Paste a job description, upload up to 200 resumes, and get a ranked shortlist in
 
 Built for campus placement cells and small recruitment teams that still shortlist by hand.
 
-<!-- TODO: add a screenshot or GIF of a ranked shortlist here: ![AI Recruiter OS](docs/screenshot.png) -->
+![AI Recruiter OS ranking eight sample resumes against a backend job description](docs/screenshot.png)
+
+<sub>A real run on the built-in fictional sample data (open `/?demo=1` to reproduce it).</sub>
 
 **At a glance**
 
@@ -29,7 +31,7 @@ Built for campus placement cells and small recruitment teams that still shortlis
 
 **Privacy:** resumes exist only for the length of one request. Nothing is stored.
 
-## New on the `v2` branch: experienced hiring
+## Experienced hiring mode
 
 Tick **Hiring experienced candidates** and the page changes from campus ranking to checking candidates against a client's requirements.
 
@@ -50,7 +52,7 @@ Things it deliberately doesn't do:
 - **Guess.** A missing notice period is "Unknown", not a failure. "Serving notice" never becomes a number of days.
 - **Read protected details** such as age, gender or marital status.
 
-With the switch off, the page, the CSV and the API response are the 1.0 ones.
+With the switch off, the page, the CSV and the API response are the same as in campus mode.
 
 **Where saved sessions live.** One file, `data/workspace.db`, readable only by your user account and ignored by git. It holds candidates' details and your notes, so treat it like the resumes themselves. The part of the app that reads it answers only your own computer, and it is switched off in the Docker image.
 
@@ -100,7 +102,7 @@ The container listens on `$PORT` if the host sets it (as Render and Railway do),
 
 `GET /api/samples` returns the demo job and resumes; `?kind=experienced` returns the experienced-hire set.
 
-Added on `v2`:
+Experienced hiring mode adds:
 
 | Endpoint | What it does |
 |---|---|
