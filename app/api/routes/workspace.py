@@ -24,7 +24,9 @@ def workspace_path() -> Path:
 
 
 def enabled() -> bool:
-    return os.environ.get("RECRUITER_WORKSPACE", "on").lower() not in ("off", "0", "false", "no")
+    # On Vercel the filesystem is read-only, so saved sessions default to off there.
+    default = "off" if os.environ.get("VERCEL") else "on"
+    return os.environ.get("RECRUITER_WORKSPACE", default).lower() not in ("off", "0", "false", "no")
 
 
 def get_store() -> Workspace:

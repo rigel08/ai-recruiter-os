@@ -1,0 +1,8 @@
+.venv
+tests
+evals
+docs
+data
+.claude
+Dockerfile
+requirements-dev.txt
