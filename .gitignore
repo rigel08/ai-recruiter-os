@@ -14,3 +14,4 @@ outreach/data/
 
 # Saved screening sessions: candidates' details and the recruiter's notes. Never commit it.
 data/
+.vercel

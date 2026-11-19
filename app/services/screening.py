@@ -176,9 +176,10 @@ def _parse_all(files: list[ResumeFile]) -> list[tuple[str | None, str | None]]:
     if len(files) >= PARALLEL_THRESHOLD and (os.cpu_count() or 1) > 1:
         try:
             return list(_get_pool().map(parse_file, names, blobs, chunksize=4))
-        except BrokenProcessPool:
-            # A worker died (for example, out of memory). Start fresh next
-            # time and finish this batch in this process.
+        except (BrokenProcessPool, OSError, NotImplementedError):
+            # A worker died (for example, out of memory), or the host can't
+            # start worker processes (serverless platforms such as Vercel).
+            # Start fresh next time and finish this batch in this process.
             shutdown_pool()
     return [parse_file(name, blob) for name, blob in zip(names, blobs)]
 

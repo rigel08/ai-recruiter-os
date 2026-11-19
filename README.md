@@ -4,6 +4,8 @@ Paste a job description, upload up to 200 resumes, and get a ranked shortlist in
 
 Built for campus placement cells and small recruitment teams that still shortlist by hand.
 
+**[Try the live demo →](https://ai-recruiter-os-xi.vercel.app/?demo=1)** (opens with sample data already ranked)
+
 ![AI Recruiter OS ranking eight sample resumes against a backend job description](docs/screenshot.png)
 
 <sub>A real run on the built-in fictional sample data (open `/?demo=1` to reproduce it).</sub>
@@ -87,7 +89,15 @@ docker build -t ai-recruiter-os .
 docker run -p 8000:8000 ai-recruiter-os
 ```
 
-The container listens on `$PORT` if the host sets it (as Render and Railway do), otherwise on 8000. The image hasn't been built yet, because Docker isn't installed on the development machine.
+The container listens on `$PORT` if the host sets it (as Render and Railway do), otherwise on 8000. The Docker image itself hasn't been built and tested yet; the live demo runs on Vercel instead.
+
+## Deploy to Vercel
+
+The live demo runs on Vercel as a single Python function (`api/index.py`). Saved sessions switch off automatically there, because the filesystem is read-only, and large batches fall back to parsing in one process, because serverless hosts can't start worker processes.
+
+```bash
+vercel deploy --prod
+```
 
 ## API
 
